@@ -9,7 +9,10 @@
         <p class="sub">आपके पसंदीदा products</p>
         @forelse($items as $item)
             <div class="fcard mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <h4 class="mb-0">{{ $item->product_name }}</h4>
+                <h4 class="mb-0 fnv-product-name">
+                    @include('Website.partials.nonveg-mark', ['size' => 'sm'])
+                    <span>{{ $item->product_name }}</span>
+                </h4>
                 <span class="text-muted small">Added {{ $item->created_at?->format('d M Y') }}</span>
             </div>
         @empty

@@ -22,6 +22,7 @@
         <div class="row g-4 align-items-start">
             <div class="col-12 col-lg-6">
                 <div class="product-gallery-wrap">
+                    @include('Website.partials.nonveg-mark', ['size' => 'md'])
                     @if($productImages->isNotEmpty())
                         <div class="owl-carousel owl-theme product-image-carousel" id="productImageCarousel">
                             @foreach($productImages as $image)
@@ -60,7 +61,10 @@
                 @if($product->category)
                     <p class="product-detail-cat mb-1">{{ $product->category->name }}</p>
                 @endif
-                <h1 class="product-detail-title mb-2">{{ $product->name }}</h1>
+                <div class="product-detail-title-row mb-2">
+                    @include('Website.partials.nonveg-mark', ['size' => 'md'])
+                    <h1 class="product-detail-title mb-0">{{ $product->name }}</h1>
+                </div>
                 @if($ratingSummary['count'] > 0)
                     <a href="#productReviews" class="product-rating-line mb-2">
                         @include('Website.Dashboard.partials.stars', ['value' => $ratingSummary['average']])

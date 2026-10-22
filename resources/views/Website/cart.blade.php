@@ -43,7 +43,10 @@
                                         @endif
                                     </a>
                                     <div class="cart-product-meta">
-                                        <a href="{{ $productUrl }}" class="cart-product-name">{{ $item->product_name }}</a>
+                                        <a href="{{ $productUrl }}" class="cart-product-name fnv-product-name">
+                                            @include('Website.partials.nonveg-mark', ['size' => 'xs'])
+                                            <span>{{ $item->product_name }}</span>
+                                        </a>
                                         @if($item->weight_label)
                                             <p class="cart-product-sku mb-0">Weight: {{ $item->weight_label }}</p>
                                         @endif

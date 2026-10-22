@@ -25,8 +25,8 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-XSS-Protection', '0');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=(self)');
-        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=(self "https://payments.cashfree.com" "https://sandbox.cashfree.com")');
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
         $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
         $response->headers->remove('X-Powered-By');
         $response->headers->remove('Server');
@@ -51,6 +51,8 @@ class SecurityHeaders
             'https://sdk.cashfree.com',
             'https://sandbox.cashfree.com',
             'https://payments.cashfree.com',
+            'https://api.cashfree.com',
+            'https://api-sandbox.cashfree.com',
             'https://cdn.quilljs.com',
             'https://unpkg.com',
         ]);
@@ -70,6 +72,9 @@ class SecurityHeaders
             'https://photon.komoot.io',
             'https://api.cashfree.com',
             'https://api-sandbox.cashfree.com',
+            'https://payments.cashfree.com',
+            'https://sandbox.cashfree.com',
+            'https://sdk.cashfree.com',
             'https://accounts.google.com',
         ]);
 
@@ -78,13 +83,13 @@ class SecurityHeaders
             "base-uri 'self'",
             "object-src 'none'",
             "frame-ancestors 'self'",
-            "form-action 'self' https://sandbox.cashfree.com https://payments.cashfree.com https://accounts.google.com",
+            "form-action 'self' https://api.cashfree.com https://api-sandbox.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://accounts.google.com",
             "img-src 'self' data: blob: https:",
             "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
             "style-src {$style}",
             "script-src {$script}",
             "connect-src {$connect}",
-            'frame-src https://sandbox.cashfree.com https://payments.cashfree.com https://accounts.google.com https://www.google.com',
+            'frame-src https://api.cashfree.com https://api-sandbox.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://sdk.cashfree.com https://accounts.google.com https://www.google.com',
         ]);
     }
 }

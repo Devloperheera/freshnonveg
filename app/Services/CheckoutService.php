@@ -305,8 +305,12 @@ class CheckoutService
             Log::error('Cashfree checkout failed', ['order' => $order->order_number, 'error' => $e->getMessage()]);
             $this->failOrder($order);
 
+            $message = str_contains($e->getMessage(), '403')
+                ? 'Cashfree ne payment block ki (403). Live website ka HTTPS domain Cashfree dashboard me whitelist karein, aur production API keys sahi hon.'
+                : 'Payment start nahi ho payi. Cart safe hai, dubara try karein.';
+
             throw ValidationException::withMessages([
-                'payment_method' => 'Payment start nahi ho payi. Cart safe hai, dubara try karein.',
+                'payment_method' => $message,
             ]);
         }
     }

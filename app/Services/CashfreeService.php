@@ -63,8 +63,14 @@ class CashfreeService
         $paymentSessionId = (string) ($session['payment_session_id'] ?? '');
         $base = rtrim((string) config('cashfree.checkout_base_url'), '/');
 
-        return $base.'/pg/view/sessions/checkout/web/'.rawurlencode($paymentSessionId)
-            .'?order_id='.rawurlencode($orderId);
+        return $base.'/pg/view/sessions/checkout?payment_session_id='.rawurlencode($paymentSessionId);
+    }
+
+    public function checkoutMode(): string
+    {
+        return strtoupper((string) config('cashfree.environment')) === 'PRODUCTION'
+            ? 'production'
+            : 'sandbox';
     }
 
     /**

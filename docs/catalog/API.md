@@ -130,6 +130,13 @@ GET /api/v1/products?category=3&q=leg&page=1&per_page=12
     {
       "id": 10,
       "name": "Chicken Leg Piece",
+      "food_type": "non_veg",
+      "food_mark": {
+        "type": "non_veg",
+        "color": "#C62828",
+        "label": "Non-Vegetarian",
+        "label_hi": "नॉन-वेज"
+      },
       "is_featured": true,
       "excerpt": "Fresh hygienic cut, ready to cook.",
       "from_price": 189,
@@ -169,6 +176,13 @@ Sort: `is_featured` desc, then `id` desc (web shop jaisa).
   "data": {
     "id": 10,
     "name": "Chicken Leg Piece",
+    "food_type": "non_veg",
+    "food_mark": {
+      "type": "non_veg",
+      "color": "#C62828",
+      "label": "Non-Vegetarian",
+      "label_hi": "नॉन-वेज"
+    },
     "is_featured": true,
     "excerpt": "Fresh hygienic cut, ready to cook.",
     "from_price": 189,
@@ -218,6 +232,13 @@ Sort: `is_featured` desc, then `id` desc (web shop jaisa).
     {
       "id": 11,
       "name": "Chicken Breast",
+      "food_type": "non_veg",
+      "food_mark": {
+        "type": "non_veg",
+        "color": "#C62828",
+        "label": "Non-Vegetarian",
+        "label_hi": "नॉन-वेज"
+      },
       "is_featured": false,
       "excerpt": "Boneless breast",
       "from_price": 220,

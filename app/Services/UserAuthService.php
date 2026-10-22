@@ -17,9 +17,17 @@ class UserAuthService
     {
         $login = $this->normalizeLoginIdentifier($login);
 
+        $digits = preg_replace('/\D+/', '', $login) ?? '';
+        $last10 = strlen($digits) >= 10 ? substr($digits, -10) : null;
+
         return User::query()
-            ->where(function ($query) use ($login) {
+            ->where(function ($query) use ($login, $last10) {
                 $query->where('email', $login)->orWhere('phone', $login);
+                if ($last10) {
+                    $query->orWhere('phone', $last10)
+                        ->orWhere('phone', '91'.$last10)
+                        ->orWhere('phone', '+91'.$last10);
+                }
             })
             ->first();
     }
@@ -112,11 +120,11 @@ class UserAuthService
         $this->ensureActive($user);
 
         $otp = $this->issueOtp($user, $purpose);
-        $this->otpDelivery->send($user, $otp, $channel, $purpose);
+        $deliveredOn = $this->otpDelivery->send($user, $otp, $channel, $purpose);
 
         return [
             'user' => $user,
-            'channel' => $channel,
+            'channel' => $deliveredOn,
             'login' => $normalized,
             'otp' => null,
         ];
@@ -152,7 +160,7 @@ class UserAuthService
         }
 
         $stored = (string) $user->otp;
-        $valid = str_starts_with($stored, '$2y$') || str_starts_with($stored, '$2a$')
+        $valid = str_starts_with($stored, '$2y$') || str_starts_with($stored, '$2a$') || str_starts_with($stored, '$2b$')
             ? Hash::check(trim($otp), $stored)
             : hash_equals($stored, trim($otp));
 

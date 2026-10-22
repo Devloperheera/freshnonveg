@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -147,11 +148,18 @@ class AuthController extends Controller
             'login' => ['required', 'string', 'max:255'],
         ]);
 
-        $result = $this->authService->sendLoginOtp($data['login']);
+        try {
+            $result = $this->authService->sendLoginOtp($data['login']);
+        } catch (ValidationException $e) {
+            return back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('login_mode', 'otp');
+        }
 
-        $message = $result['channel'] === 'email'
-            ? 'OTP aapke email par bhej diya gaya hai.'
-            : 'OTP aapke phone number par bhej diya gaya hai.';
+        $message = $result['channel'] === 'phone'
+            ? 'OTP aapke phone number par bhej diya gaya hai.'
+            : 'OTP aapke registered email par bhej diya gaya hai. Inbox aur Spam folder check karein.';
 
         return back()
             ->withInput(['login' => $result['login']])
@@ -167,7 +175,16 @@ class AuthController extends Controller
             'otp' => ['required', 'string', 'size:6'],
         ]);
 
-        $user = $this->authService->verifyLoginOtp($data['login'], $data['otp'], $request, 'web');
+        try {
+            $user = $this->authService->verifyLoginOtp($data['login'], $data['otp'], $request, 'web');
+        } catch (ValidationException $e) {
+            return back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('otp_sent', true)
+                ->with('login_mode', 'otp');
+        }
+
         $this->authService->webLogin($user);
         $request->session()->regenerate();
 
@@ -187,9 +204,9 @@ class AuthController extends Controller
 
         $result = $this->authService->sendResetOtp($data['login']);
 
-        $message = $result['channel'] === 'email'
-            ? 'Reset OTP email par bhej diya gaya hai.'
-            : 'Reset OTP phone par bhej diya gaya hai.';
+        $message = $result['channel'] === 'phone'
+            ? 'Reset OTP phone par bhej diya gaya hai.'
+            : 'Reset OTP aapke registered email par bhej diya gaya hai. Inbox aur Spam folder check karein.';
 
         return redirect()
             ->route('password.reset.form', ['login' => $result['login']])

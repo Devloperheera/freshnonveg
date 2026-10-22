@@ -86,7 +86,8 @@ php artisan db:seed --class=TestimonialSeeder
 2. `GET /api/v1/categories`
 3. `GET /api/v1/products?per_page=20`
 4. **`GET /api/v1/home-content`** — baaki sab sections
+5. **`GET /api/v1/faqs`** — home FAQ accordion. Details: [FAQ](../faq/README.md)
 
 ## Related
 
-- [Catalog](../catalog/README.md) · [Policy](../policy/README.md) · [Auth](../auth/README.md) · [User](../user/README.md) · [Cart → Buy](../cart/README.md)
+- [FAQ](../faq/README.md) · [Catalog](../catalog/README.md) · [Policy](../policy/README.md) · [Auth](../auth/README.md) · [User](../user/README.md) · [Cart → Buy](../cart/README.md)

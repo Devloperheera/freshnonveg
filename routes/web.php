@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
     Route::post('/checkout/coupon', [CheckoutController::class, 'applyCoupon'])->middleware('throttle:checkout')->name('checkout.coupon');
     Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkout.store');
+    Route::get('/checkout/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
     Route::get('/checkout/cashfree/return', [CheckoutController::class, 'cashfreeReturn'])->name('checkout.cashfree.return');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/orders/{order}/bill', [OrderBillController::class, 'show'])->name('orders.bill');

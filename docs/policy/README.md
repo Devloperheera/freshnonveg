@@ -89,6 +89,7 @@ Default content: `php artisan db:seed --class=LegalPagesSeeder`
 
 ## Related docs
 
+- [FAQ](../faq/README.md)
 - [Catalog API](../catalog/README.md)
 - [Auth API](../auth/README.md)
 - [User dashboard](../user/README.md)

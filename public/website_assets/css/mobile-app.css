@@ -207,6 +207,16 @@
         border-radius: 10px !important;
         font-size: 2rem !important;
     }
+    .product-card-col .fnv-nonveg-mark {
+        width: 13px;
+        height: 13px;
+        top: 5px;
+        left: 5px;
+    }
+    .product-card-col .fnv-nonveg-mark__dot {
+        width: 6px;
+        height: 6px;
+    }
     .product-card-col .pimg-fallback {
         font-size: 2rem !important;
     }

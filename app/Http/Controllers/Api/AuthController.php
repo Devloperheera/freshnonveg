@@ -94,9 +94,13 @@ class AuthController extends Controller
             ? $this->authService->sendResetOtp($data['login'])
             : $this->authService->sendLoginOtp($data['login']);
 
+        $message = $result['channel'] === 'phone'
+            ? 'OTP sent to your phone number.'
+            : 'OTP sent to your registered email. Please check inbox and spam.';
+
         return response()->json([
             'success' => true,
-            'message' => 'OTP sent successfully.',
+            'message' => $message,
             'channel' => $result['channel'],
             'login' => $result['login'],
         ]);

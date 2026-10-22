@@ -92,6 +92,13 @@ class CatalogApi
         return [
             'id' => $product->id,
             'name' => $product->name,
+            'food_type' => 'non_veg',
+            'food_mark' => [
+                'type' => 'non_veg',
+                'color' => '#C62828',
+                'label' => 'Non-Vegetarian',
+                'label_hi' => 'नॉन-वेज',
+            ],
             'is_featured' => (bool) $product->is_featured,
             'excerpt' => Str::limit(trim($excerptSource), 120) ?: null,
             'from_price' => $fromPrice !== null ? (float) $fromPrice : null,

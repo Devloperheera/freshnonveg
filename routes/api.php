@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\HomeContentController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\ProductController;
@@ -28,6 +29,7 @@ Route::prefix('v1')->group(function (): void {
         ->where('slug', SitePage::slugPattern());
 
     Route::get('/home-content', [HomeContentController::class, 'index']);
+    Route::get('/faqs', [FaqController::class, 'index']);
 
     Route::get('/banners', [BannerController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);

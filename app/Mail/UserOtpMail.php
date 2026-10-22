@@ -31,7 +31,7 @@ class UserOtpMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(view: 'emails.user-otp');
+        return new Content(view: 'Emails.user-otp');
     }
 
     public function attachments(): array

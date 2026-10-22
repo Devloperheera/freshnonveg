@@ -161,6 +161,7 @@ curl -s -H "Accept: application/json" \
 | How to order | `data.order_way.section` + `data.order_way.steps` |
 | Delivery areas | `data.delivery.section` + `data.delivery.locations` |
 | Fresh advantages | `data.advantages.section` + `data.advantages.items` |
+| Home FAQ accordion | Alag endpoint: `GET /api/v1/faqs` — [FAQ docs](../faq/README.md) |
 
 ---
 

@@ -14,6 +14,7 @@
             <span class="tag">{{ $tagLabel }}</span>
         @endif
         <div class="pimg pimg-photo" style="background:{{ $bg }}">
+            @include('Website.partials.nonveg-mark', ['size' => 'sm'])
             @if($image)
                 <img src="{{ $image->url() }}" alt="{{ $product->name }}" loading="lazy">
             @else

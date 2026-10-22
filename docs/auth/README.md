@@ -103,3 +103,5 @@ Same field as web: **ईमेल या मोबाइल**.
 - [User dashboard](../user/README.md)
 - [Cart → Buy](../cart/README.md)
 - [Policy](../policy/README.md)
+- [FAQ](../faq/README.md)
+- [Home content](../home-content/README.md)

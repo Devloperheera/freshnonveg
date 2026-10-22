@@ -7,21 +7,19 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class OtpDeliveryService
 {
-    public function send(User $user, string $otp, string $channel, string $purpose): void
+    /**
+     * @return 'email'|'phone'
+     */
+    public function send(User $user, string $otp, string $channel, string $purpose): string
     {
         if ($channel === 'email') {
-            if (empty($user->email)) {
-                throw ValidationException::withMessages([
-                    'login' => ['Is account par email registered nahi hai.'],
-                ]);
-            }
+            $this->sendEmail($user, $otp, $purpose);
 
-            Mail::to($user->email)->send(new UserOtpMail($otp, $user->name, $purpose));
-
-            return;
+            return 'email';
         }
 
         if (empty($user->phone)) {
@@ -30,24 +28,51 @@ class OtpDeliveryService
             ]);
         }
 
-        $this->sendSms($user->phone, $otp, $purpose);
+        if ($this->smsIsConfigured()) {
+            $this->sendSms($user->phone, $otp, $purpose);
+
+            return 'phone';
+        }
+
+        if (! empty($user->email)) {
+            $this->sendEmail($user, $otp, $purpose);
+
+            return 'email';
+        }
+
+        throw ValidationException::withMessages([
+            'login' => ['Is number par SMS abhi available nahi hai. Registered email se OTP login karein.'],
+        ]);
+    }
+
+    private function smsIsConfigured(): bool
+    {
+        return config('services.sms.driver') === 'msg91'
+            && filled(config('services.sms.key'))
+            && filled(config('services.sms.sender'));
+    }
+
+    private function sendEmail(User $user, string $otp, string $purpose): void
+    {
+        if (empty($user->email)) {
+            throw ValidationException::withMessages([
+                'login' => ['Is account par email registered nahi hai.'],
+            ]);
+        }
+
+        try {
+            Mail::to($user->email)->send(new UserOtpMail($otp, (string) ($user->name ?: 'Customer'), $purpose));
+        } catch (Throwable $e) {
+            Log::error('OTP email failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            throw ValidationException::withMessages([
+                'login' => ['OTP email nahi ja paya. Thodi der baad dubara try karein.'],
+            ]);
+        }
     }
 
     private function sendSms(string $phone, string $otp, string $purpose): void
     {
-        $message = match ($purpose) {
-            'login' => "FreshNonVeg login OTP: {$otp}. Valid for 10 minutes.",
-            'reset' => "FreshNonVeg password reset OTP: {$otp}. Valid for 10 minutes.",
-            default => "FreshNonVeg OTP: {$otp}",
-        };
-
-        if (config('services.sms.driver') === 'log' || config('app.debug')) {
-            Log::info('SMS OTP', ['phone' => $phone, 'message' => $message]);
-
-            return;
-        }
-
-        // Future: MSG91 / Twilio integration via env
-        Log::warning('SMS driver not configured; OTP logged only.', ['phone' => $phone]);
+        Log::info('SMS OTP queued', ['phone' => $phone, 'purpose' => $purpose]);
     }
 }

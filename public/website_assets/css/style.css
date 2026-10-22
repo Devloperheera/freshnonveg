@@ -117,9 +117,22 @@ h1.t u,h2.t u{text-decoration:none;box-decoration-break:clone;-webkit-box-decora
 .cat-with-img img{width:80px;height:80px;object-fit:cover;border-radius:50%;border:3px solid var(--dark);box-shadow:3px 3px 0 var(--dark);margin:0 auto 10px;display:block;transition:.25s;background:#fff}
 .cat-with-img .cat-name{display:block;font-size:1.05rem;line-height:1.25}
 .cat-with-img:hover img{transform:scale(1.08) rotate(-4deg)}
-.pimg{height:150px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:5rem;margin-bottom:10px;border:3px solid var(--dark);overflow:hidden}
+.pimg{height:150px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:5rem;margin-bottom:10px;border:3px solid var(--dark);overflow:hidden;position:relative}
 .pimg-photo img{width:100%;height:100%;object-fit:cover;display:block}
 .pimg-fallback{font-size:4rem;line-height:1}
+.fnv-nonveg-mark{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;background:#fff;border:1.6px solid #c62828;border-radius:2px;flex-shrink:0;line-height:0;vertical-align:middle}
+.fnv-nonveg-mark__dot{display:block;border-radius:50%;background:#c62828}
+.fnv-nonveg-mark--xs{width:12px;height:12px;border-width:1.4px}
+.fnv-nonveg-mark--xs .fnv-nonveg-mark__dot{width:6px;height:6px}
+.fnv-nonveg-mark--sm{width:16px;height:16px}
+.fnv-nonveg-mark--sm .fnv-nonveg-mark__dot{width:8px;height:8px}
+.fnv-nonveg-mark--md{width:20px;height:20px;border-width:2px}
+.fnv-nonveg-mark--md .fnv-nonveg-mark__dot{width:10px;height:10px}
+.pimg .fnv-nonveg-mark{position:absolute;top:8px;left:8px;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.product-gallery-wrap > .fnv-nonveg-mark{position:absolute;top:12px;left:12px;z-index:3;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.product-detail-title-row{display:flex;align-items:flex-start;gap:10px}
+.product-detail-title-row .product-detail-title{flex:1;min-width:0}
+.fnv-product-name{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 .price{font-size:1.6rem;font-weight:800;color:var(--red)}
 .tag{position:absolute;top:-10px;right:10px;background:var(--red);color:#fff;border-radius:20px;padding:0 12px;font-weight:700;font-size:.8rem;transform:rotate(6deg)}
 .num{width:70px;height:70px;border-radius:50%;background:var(--yel);border:3px solid var(--dark);font-size:2rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:4px 4px 0 var(--dark);animation:pulse 2.5s infinite}

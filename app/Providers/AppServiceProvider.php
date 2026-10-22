@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         if (! $this->app->runningInConsole()) {
-            $root = request()->getSchemeAndHttpHost();
+            $root = rtrim(request()->root(), '/');
             if ($root !== '') {
                 URL::forceRootUrl($root);
             }

@@ -145,7 +145,10 @@
                                         <img src="{{ $img }}" alt="" class="checkout-item-thumb" width="48" height="48">
                                     @endif
                                     <div class="flex-grow-1 small">
-                                        <div class="fw-bold">{{ $item->product_name }}</div>
+                                        <div class="fw-bold fnv-product-name">
+                                            @include('Website.partials.nonveg-mark', ['size' => 'xs'])
+                                            <span>{{ $item->product_name }}</span>
+                                        </div>
                                         @if($item->weight_label)
                                             <div class="text-muted">{{ $item->weight_label }} × {{ $item->quantity }}</div>
                                         @else

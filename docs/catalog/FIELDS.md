@@ -65,12 +65,25 @@ Sirf active tags products par attach hote hain (admin se).
 |-------|------|-------------|
 | `id` | integer | Product id |
 | `name` | string | Product name |
+| `food_type` | string | Always `non_veg` (store is non-veg only) |
+| `food_mark` | object | Red FSSAI-style mark for app UI |
 | `is_featured` | boolean | Featured flag |
 | `excerpt` | string \| null | Short text (meta or description) |
 | `from_price` | number \| null | Minimum weight price |
 | `image` | string \| null | First gallery image URL |
 | `category` | object \| null | Nested category (without `products_count`) |
 | `tags` | array | Tag objects |
+
+### `food_mark` (nested)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | `non_veg` |
+| `color` | string | Hex `#C62828` — red square + red dot |
+| `label` | string | `Non-Vegetarian` |
+| `label_hi` | string | `नॉन-वेज` |
+
+App: product image top-left par brown/red square + filled red circle (FSSAI non-veg mark). Veg green mark nahi — store sirf non-veg hai.
 
 ---
 

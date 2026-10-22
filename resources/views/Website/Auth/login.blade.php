@@ -5,8 +5,8 @@
 @section('content')
 @include('Website.Auth.partials.styles')
 @php
-    $mode = old('login_mode', session('login_mode', 'password'));
-    $otpSent = session('otp_sent', false);
+    $mode = old('login_mode', session('login_mode', $errors->has('otp') ? 'otp' : 'password'));
+    $otpSent = session('otp_sent', false) || $errors->has('otp');
 @endphp
 <div class="auth-wrap auth-wrap--compact">
     <div class="auth-card auth-card--compact">
@@ -44,7 +44,7 @@
 
         <div id="panelOtp" class="{{ $mode === 'password' ? 'd-none' : '' }}">
             @if(! $otpSent)
-                <p class="small text-muted mb-2">नंबर par SMS, ईमेल par mail — OTP jaldi aa jayega 📩</p>
+                <p class="small text-muted mb-2">OTP aapke registered email par jayega. Number se login karoge tab bhi wahi email check karna — inbox aur spam dono. 📩</p>
                 <form method="POST" action="{{ route('login.otp.send') }}">
                     @csrf
                     <input type="hidden" name="login" id="loginOtpSendHidden" value="{{ old('login') }}">
@@ -88,6 +88,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
     identifier.addEventListener('input', syncLogin);
+    identifier.addEventListener('change', syncLogin);
+    document.querySelectorAll('#panelPassword form, #panelOtp form').forEach(form => {
+        form.addEventListener('submit', syncLogin);
+    });
     syncLogin();
 
     document.querySelectorAll('.auth-tab').forEach(btn => {

@@ -44,6 +44,8 @@ return [
 
     'sms' => [
         'driver' => env('SMS_DRIVER', 'log'),
+        'key' => env('SMS_KEY'),
+        'sender' => env('SMS_SENDER'),
     ],
 
 ];

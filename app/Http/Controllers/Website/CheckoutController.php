@@ -70,7 +70,46 @@ class CheckoutController extends Controller
             return back()->withInput()->withErrors($e->errors());
         }
 
-        return redirect()->away($this->cashfree->checkoutRedirectUrl($order->order_number, $session));
+        $paymentSessionId = (string) ($session['payment_session_id'] ?? '');
+        if ($paymentSessionId === '') {
+            return redirect()->away($this->cashfree->checkoutRedirectUrl($order->order_number, $session));
+        }
+
+        $request->session()->put('cashfree_checkout', [
+            'order_id' => $order->id,
+            'payment_session_id' => $paymentSessionId,
+        ]);
+
+        return redirect()->route('checkout.pay');
+    }
+
+    public function pay(Request $request): View|RedirectResponse
+    {
+        $payload = $request->session()->get('cashfree_checkout');
+        if (! is_array($payload) || empty($payload['payment_session_id']) || empty($payload['order_id'])) {
+            return redirect()->route('checkout')->withErrors([
+                'payment' => 'Payment session expire ho gayi. Dubara Pay dabayein.',
+            ]);
+        }
+
+        $order = Order::query()
+            ->whereKey($payload['order_id'])
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (! $order) {
+            $request->session()->forget('cashfree_checkout');
+
+            return redirect()->route('checkout')->withErrors([
+                'payment' => 'Order nahi mila. Dubara checkout karein.',
+            ]);
+        }
+
+        return view('Website.checkout-pay', [
+            'order' => $order,
+            'paymentSessionId' => (string) $payload['payment_session_id'],
+            'cashfreeMode' => $this->cashfree->checkoutMode(),
+        ]);
     }
 
     public function cashfreeReturn(Request $request): RedirectResponse
