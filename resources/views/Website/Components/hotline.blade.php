@@ -1,0 +1,1 @@
+<div class="band"><div>🥩 FRESH, NOT FROZEN &nbsp;•&nbsp; 🐟 DIRECT FROM MEAT SHOP &nbsp;•&nbsp; 🚚 FAST DELIVERY &nbsp;•&nbsp; 🥩 FRESH, NOT FROZEN &nbsp;•&nbsp; 🐟 DIRECT FROM MEAT SHOP &nbsp;•&nbsp; 🚚 FAST DELIVERY &nbsp;•&nbsp;</div></div>
