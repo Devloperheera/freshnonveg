@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CartController;
 use App\Http\Controllers\Admin\ComplaintController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\NotificationGroupController;
+use App\Http\Controllers\Admin\PushNotificationController;
 use App\Http\Controllers\Admin\OrderNotificationController;
 use App\Http\Controllers\Admin\WalletController;
 use App\Http\Controllers\Admin\WishlistController;
@@ -155,6 +157,20 @@ Route::prefix('FreshNonVegAdmin')
             Route::post('/wallet/credit', [WalletController::class, 'store'])->name('wallet.store');
             Route::get('/wallet/users', [WalletController::class, 'userSearch'])->name('wallet.users');
             Route::get('/wishlists', [WishlistController::class, 'index'])->name('wishlists.index');
+            Route::prefix('notifications')->name('notifications.')->group(function (): void {
+                Route::get('/', [PushNotificationController::class, 'index'])->name('index');
+                Route::post('/', [PushNotificationController::class, 'store'])->name('store');
+                Route::post('/{pushNotification}/resend', [PushNotificationController::class, 'resend'])->name('resend');
+
+                Route::get('/groups', [NotificationGroupController::class, 'index'])->name('groups.index');
+                Route::post('/groups', [NotificationGroupController::class, 'store'])->name('groups.store');
+                Route::put('/groups/{notificationGroup}', [NotificationGroupController::class, 'update'])->name('groups.update');
+                Route::delete('/groups/{notificationGroup}', [NotificationGroupController::class, 'destroy'])->name('groups.destroy');
+                Route::get('/groups/{notificationGroup}/users-page', [NotificationGroupController::class, 'usersPage'])->name('groups.users');
+                Route::post('/groups/{notificationGroup}/members', [NotificationGroupController::class, 'addMembers'])->name('groups.members.add');
+                Route::delete('/groups/{notificationGroup}/members/{user}', [NotificationGroupController::class, 'removeMember'])->name('groups.members.remove');
+            });
+
             Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');
             Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
             Route::put('/complaints/{complaint}', [ComplaintController::class, 'update'])->name('complaints.update');

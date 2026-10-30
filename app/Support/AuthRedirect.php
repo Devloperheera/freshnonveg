@@ -36,6 +36,29 @@ class AuthRedirect
             : route('login');
     }
 
+    /**
+     * Guest ko login par bhejo (return URL ke saath); logged-in user seedha destination par.
+     */
+    public static function gate(string $destination): string
+    {
+        $request = request();
+
+        if ($request->user()) {
+            return $destination;
+        }
+
+        if (self::isSafeRedirect($destination, $request)) {
+            return route('login', [self::QUERY_KEY => $destination]);
+        }
+
+        return route('login');
+    }
+
+    public static function gateRoute(string $name, array $parameters = [], bool $absolute = true): string
+    {
+        return self::gate(route($name, $parameters, $absolute));
+    }
+
     public static function registerRoute(?Request $request = null): string
     {
         $request ??= request();
@@ -70,6 +93,7 @@ class AuthRedirect
             'password.forgot',
             'password.reset.form',
             'auth.google.phone',
+            'account.delete',
         )) {
             $existing = $request->query(self::QUERY_KEY);
 

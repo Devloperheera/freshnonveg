@@ -6,11 +6,20 @@ class StorageUrl
 {
     public static function baseUrl(): string
     {
-        $configured = env('APP_STORAGE_URL');
+        $fromConfig = config('filesystems.disks.public.url');
+        if (is_string($fromConfig) && $fromConfig !== '') {
+            return rtrim($fromConfig, '/');
+        }
 
-        if (is_string($configured) && $configured !== '') {
+        return self::resolveFromEnv();
+    }
+
+    public static function resolveFromEnv(): string
+    {
+        $configured = env('APP_STORAGE_URL');
+        if (is_string($configured) && trim($configured) !== '') {
             $appUrl = rtrim((string) env('APP_URL', 'http://localhost'), '/');
-            $configured = str_replace(['${APP_URL}', '$APP_URL'], $appUrl, $configured);
+            $configured = str_replace(['${APP_URL}', '$APP_URL'], $appUrl, trim($configured));
 
             return rtrim($configured, '/');
         }
@@ -37,6 +46,9 @@ class StorageUrl
         return self::baseUrl().'/'.ltrim($path, '/');
     }
 
+    /**
+     * DB / purani full URL ko hamesha .env wale storage base par map karta hai.
+     */
     private static function normalizeAbsoluteUrl(string $url): string
     {
         $path = parse_url($url, PHP_URL_PATH);

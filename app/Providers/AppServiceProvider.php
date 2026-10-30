@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
 
         Paginator::useBootstrapFive();
 
-        Config::set('filesystems.disks.public.url', StorageUrl::baseUrl());
+        Config::set('filesystems.disks.public.url', StorageUrl::resolveFromEnv());
 
         View::composer('Website.Layout.master', function ($view): void {
             $view->with([

@@ -116,7 +116,7 @@
 
                 @auth
                     @if($product->weights->isNotEmpty())
-                        <form method="POST" action="{{ route('products.cart.add', $product) }}" id="productAddCartForm" class="mb-2" data-ajax-add-cart>
+                        <form method="POST" action="{{ route('products.cart.add', $product) }}" id="productAddCartForm" class="mb-2">
                             @csrf
                             <input type="hidden" name="product_weight_id" id="productWeightIdInput" value="{{ $defaultWeight?->id }}">
                             <input type="hidden" name="quantity" id="productQtyInput" value="1">

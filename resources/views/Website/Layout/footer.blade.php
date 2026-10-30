@@ -25,6 +25,7 @@
                 <a href="{{ route('pages.show', 'terms-conditions') }}">Terms &amp; Conditions</a>
                 <a href="{{ route('pages.show', 'privacy-policy') }}">Privacy Policy</a>
                 <a href="{{ route('pages.show', 'refund-policy') }}">Refund Policy</a>
+                <a href="{{ route('account.delete') }}">Delete Account</a>
             </div>
         </div>
         <p class="text-center small mt-4 pt-3" style="border-top:1px solid #334155">© 2026 Fresh Non Veg. All rights

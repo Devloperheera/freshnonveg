@@ -12,11 +12,19 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Laravel\Socialite\Contracts\Provider as SocialiteProvider;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
     public function __construct(private UserAuthService $authService) {}
+
+    private function googleSocialite(): SocialiteProvider
+    {
+        $redirect = route('auth.google.callback', absolute: true);
+
+        return Socialite::driver('google')->redirectUrl($redirect);
+    }
 
     public function showLogin(Request $request): View
     {
@@ -34,6 +42,8 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
+        AuthRedirect::captureIntended($request);
+
         $data = $request->validate([
             'login' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
@@ -74,12 +84,12 @@ class AuthController extends Controller
     {
         AuthRedirect::captureIntended($request);
 
-        return Socialite::driver('google')->redirect();
+        return $this->googleSocialite()->redirect();
     }
 
     public function handleGoogleCallback(Request $request): RedirectResponse
     {
-        $googleUser = Socialite::driver('google')->user();
+        $googleUser = $this->googleSocialite()->user();
 
         $result = $this->authService->resolveGoogleUser([
             'sub' => $googleUser->getId(),
@@ -154,12 +164,13 @@ class AuthController extends Controller
             return back()
                 ->withInput()
                 ->withErrors($e->errors())
-                ->with('login_mode', 'otp');
+                ->with('login_mode', 'otp')
+                ->with('otp_sent', false);
         }
 
         $message = $result['channel'] === 'phone'
-            ? 'OTP aapke phone number par bhej diya gaya hai.'
-            : 'OTP aapke registered email par bhej diya gaya hai. Inbox aur Spam folder check karein.';
+            ? 'OTP aapke mobile number par SMS se bhej diya gaya hai.'
+            : 'OTP aapke email par bhej diya gaya hai. Inbox aur Spam folder check karein.';
 
         return back()
             ->withInput(['login' => $result['login']])
@@ -170,6 +181,8 @@ class AuthController extends Controller
 
     public function verifyLoginOtp(Request $request): RedirectResponse
     {
+        AuthRedirect::captureIntended($request);
+
         $data = $request->validate([
             'login' => ['required', 'string', 'max:255'],
             'otp' => ['required', 'string', 'size:6'],
@@ -178,10 +191,13 @@ class AuthController extends Controller
         try {
             $user = $this->authService->verifyLoginOtp($data['login'], $data['otp'], $request, 'web');
         } catch (ValidationException $e) {
+            $errors = $e->errors();
+            $needsRegister = isset($errors['login']);
+
             return back()
                 ->withInput()
-                ->withErrors($e->errors())
-                ->with('otp_sent', true)
+                ->withErrors($errors)
+                ->with('otp_sent', ! $needsRegister)
                 ->with('login_mode', 'otp');
         }
 
@@ -202,11 +218,15 @@ class AuthController extends Controller
             'login' => ['required', 'string', 'max:255'],
         ]);
 
-        $result = $this->authService->sendResetOtp($data['login']);
+        try {
+            $result = $this->authService->sendResetOtp($data['login']);
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
+        }
 
         $message = $result['channel'] === 'phone'
-            ? 'Reset OTP phone par bhej diya gaya hai.'
-            : 'Reset OTP aapke registered email par bhej diya gaya hai. Inbox aur Spam folder check karein.';
+            ? 'Reset OTP aapke mobile number par SMS se bhej diya gaya hai.'
+            : 'Reset OTP aapke email par bhej diya gaya hai. Inbox aur Spam folder check karein.';
 
         return redirect()
             ->route('password.reset.form', ['login' => $result['login']])

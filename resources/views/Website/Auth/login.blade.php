@@ -20,8 +20,12 @@
 
         <div class="mb-compact">
             <label class="form-label">ईमेल / मोबाइल (Email / Phone)</label>
-            <input type="text" id="loginIdentifier" class="form-control @error('login') is-invalid @enderror" value="{{ old('login') }}" placeholder="email@example.com ya 98XXXXXXXX" required autofocus>
+            <input type="text" id="loginIdentifier" class="form-control @error('login') is-invalid @enderror" value="{{ old('login') }}" placeholder="email@example.com ya 98XXXXXXXX" required autofocus autocomplete="username">
+            <p class="small text-muted mb-0 mt-1" id="loginChannelHint" aria-live="polite"></p>
             @error('login')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+            @if($errors->has('login') && str_contains($errors->first('login'), 'register'))
+                <p class="small mt-2 mb-0"><a href="{{ $guestRegisterUrl ?? route('register') }}" class="fw-bold">नया user? Register / Sign Up karein →</a></p>
+            @endif
         </div>
 
         <div id="panelPassword" class="{{ $mode === 'otp' ? 'd-none' : '' }}">
@@ -44,7 +48,7 @@
 
         <div id="panelOtp" class="{{ $mode === 'password' ? 'd-none' : '' }}">
             @if(! $otpSent)
-                <p class="small text-muted mb-2">OTP aapke registered email par jayega. Number se login karoge tab bhi wahi email check karna — inbox aur spam dono. 📩</p>
+                <p class="small text-muted mb-2">Email daaloge to OTP email par, mobile number daaloge to OTP SMS par jayega (Fast2SMS). 📩</p>
                 <form method="POST" action="{{ route('login.otp.send') }}">
                     @csrf
                     <input type="hidden" name="login" id="loginOtpSendHidden" value="{{ old('login') }}">
@@ -80,17 +84,57 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const identifier = document.getElementById('loginIdentifier');
+    const channelHint = document.getElementById('loginChannelHint');
+
+    const detectChannel = (value) => {
+        const v = value.trim();
+        if (!v) {
+            return '';
+        }
+        if (v.includes('@')) {
+            return 'email';
+        }
+        const digits = v.replace(/\D/g, '');
+        if (digits.length >= 10) {
+            return 'phone';
+        }
+        return '';
+    };
+
+    const updateChannelHint = () => {
+        if (!channelHint) {
+            return;
+        }
+        const channel = detectChannel(identifier.value);
+        if (channel === 'email') {
+            channelHint.textContent = 'OTP is email par bheja jayega.';
+        } else if (channel === 'phone') {
+            channelHint.textContent = 'OTP is mobile number par SMS se bheja jayega.';
+        } else {
+            channelHint.textContent = 'Email likhein ya 10-digit mobile number.';
+        }
+    };
+
     const syncLogin = () => {
         const v = identifier.value.trim();
         ['loginPasswordHidden','loginOtpSendHidden','loginOtpVerifyHidden','loginOtpResendHidden'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = v;
         });
+        updateChannelHint();
     };
+
     identifier.addEventListener('input', syncLogin);
     identifier.addEventListener('change', syncLogin);
     document.querySelectorAll('#panelPassword form, #panelOtp form').forEach(form => {
-        form.addEventListener('submit', syncLogin);
+        form.addEventListener('submit', function (e) {
+            syncLogin();
+            if (!identifier.value.trim()) {
+                e.preventDefault();
+                identifier.focus();
+                identifier.classList.add('is-invalid');
+            }
+        });
     });
     syncLogin();
 

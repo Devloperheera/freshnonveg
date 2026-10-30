@@ -1,8 +1,8 @@
 @php
     $guestLoginUrl = $guestLoginUrl ?? route('login');
-    $wishlistUrl = auth()->check() ? route('wishlist') : $guestLoginUrl;
-    $cartUrl = auth()->check() ? route('cart') : $guestLoginUrl;
-    $accountUrl = auth()->check() ? route('dashboard') : $guestLoginUrl;
+    $wishlistUrl = \App\Support\AuthRedirect::gateRoute('wishlist');
+    $cartUrl = \App\Support\AuthRedirect::gateRoute('cart');
+    $accountUrl = \App\Support\AuthRedirect::gateRoute('dashboard');
     $isHome = request()->routeIs('home');
     $isSearch = request()->routeIs('shop.index');
     $isWishlist = request()->routeIs('wishlist');

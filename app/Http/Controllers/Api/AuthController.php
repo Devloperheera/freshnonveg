@@ -4,15 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AccountDeletionService;
 use App\Services\UserAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function __construct(private UserAuthService $authService) {}
+    public function __construct(
+        private UserAuthService $authService,
+        private AccountDeletionService $accountDeletion,
+    ) {}
 
     public function register(Request $request): JsonResponse
     {
@@ -95,8 +100,8 @@ class AuthController extends Controller
             : $this->authService->sendLoginOtp($data['login']);
 
         $message = $result['channel'] === 'phone'
-            ? 'OTP sent to your phone number.'
-            : 'OTP sent to your registered email. Please check inbox and spam.';
+            ? 'OTP sent via SMS to the mobile number you entered.'
+            : 'OTP sent to the email address you entered. Check inbox and spam.';
 
         return response()->json([
             'success' => true,
@@ -355,6 +360,43 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Logged out successfully.',
+        ]);
+    }
+
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $rules = [
+            'confirm' => ['accepted'],
+            'confirm_phrase' => ['required', 'string', 'in:DELETE MY ACCOUNT'],
+        ];
+
+        if ($user->password) {
+            $rules['current_password'] = ['required', 'string'];
+        }
+
+        $data = $request->validate($rules, [
+            'confirm.accepted' => 'Account delete karne ke liye confirm true bhejein.',
+            'confirm_phrase.in' => 'confirm_phrase exactly hona chahiye: DELETE MY ACCOUNT',
+            'current_password.required' => 'Apna password enter karein.',
+        ]);
+
+        if ($user->password && ! Hash::check($data['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Current password is incorrect.'],
+            ]);
+        }
+
+        $this->accountDeletion->deleteAccount($user);
+
+        $request->user()->currentAccessToken()?->delete();
+        $this->authService->recordLogout($user->fresh());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your account has been deleted.',
         ]);
     }
 

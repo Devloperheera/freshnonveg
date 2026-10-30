@@ -52,6 +52,7 @@ Route::prefix('v1')->group(function (): void {
             Route::match(['put', 'patch'], '/profile', [AuthController::class, 'updateProfile']);
             Route::match(['put', 'patch'], '/profile/password', [AuthController::class, 'updatePassword']);
             Route::post('/logout', [AuthController::class, 'logout']);
+            Route::delete('/account', [AuthController::class, 'deleteAccount'])->middleware('throttle:login');
             Route::post('/complete-profile', [AuthController::class, 'completeProfile']);
             Route::post('/device', [AuthController::class, 'updateDevice']);
         });

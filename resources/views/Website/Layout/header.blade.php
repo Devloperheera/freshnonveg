@@ -5,8 +5,8 @@
         : ['wishlist' => 0, 'cart' => 0];
     $wishlistCount = (int) $headerCounts['wishlist'];
     $cartCount = (int) $headerCounts['cart'];
-    $wishlistUrl = auth()->check() ? route('wishlist') : $guestLoginUrl;
-    $cartUrl = auth()->check() ? route('cart') : $guestLoginUrl;
+    $wishlistUrl = \App\Support\AuthRedirect::gateRoute('wishlist');
+    $cartUrl = \App\Support\AuthRedirect::gateRoute('cart');
 @endphp
 <nav class="navbar navbar-expand-md" id="siteHeader">
     <div class="container header-bar">

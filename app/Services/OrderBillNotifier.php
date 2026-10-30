@@ -18,6 +18,9 @@ class OrderBillNotifier
             return false;
         }
 
+        app(OrderConfirmationSmsService::class)->sendIfPaid($order);
+        $order->refresh();
+
         if ($order->bill_emailed_at) {
             return true;
         }

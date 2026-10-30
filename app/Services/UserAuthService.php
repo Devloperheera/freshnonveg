@@ -11,7 +11,18 @@ use Illuminate\Validation\ValidationException;
 
 class UserAuthService
 {
+    public const MESSAGE_LOGIN_NOT_REGISTERED = 'Pehle register karein, phir login hoga. / पहले रजिस्टर करें, फिर लॉगिन करें।';
+
     public function __construct(private OtpDeliveryService $otpDelivery) {}
+
+    private function assertRegisteredForLogin(?User $user): void
+    {
+        if ($user === null) {
+            throw ValidationException::withMessages([
+                'login' => [self::MESSAGE_LOGIN_NOT_REGISTERED],
+            ]);
+        }
+    }
 
     public function findByLogin(string $login): ?User
     {
@@ -47,16 +58,23 @@ class UserAuthService
     {
         $login = trim($login);
 
-        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
+        if (str_contains($login, '@')) {
+            if (! filter_var($login, FILTER_VALIDATE_EMAIL)) {
+                throw ValidationException::withMessages([
+                    'login' => ['Sahi email format enter karein.'],
+                ]);
+            }
+
             return 'email';
         }
 
-        if (preg_match('/^[0-9+\-\s()]{8,20}$/', $login)) {
+        $digits = preg_replace('/\D+/', '', $login) ?? '';
+        if (strlen($digits) >= 10) {
             return 'phone';
         }
 
         throw ValidationException::withMessages([
-            'login' => ['Valid email ya phone number enter karein.'],
+            'login' => ['Valid email ya 10-digit mobile number enter karein.'],
         ]);
     }
 
@@ -81,11 +99,7 @@ class UserAuthService
     {
         $user = $this->findByLogin($this->normalizeLoginIdentifier($login));
 
-        if (! $user) {
-            throw ValidationException::withMessages([
-                'otp' => ['Galat OTP. Dobara try karein.'],
-            ]);
-        }
+        $this->assertRegisteredForLogin($user);
 
         $this->assertValidOtp($user, $otp);
 
@@ -104,23 +118,26 @@ class UserAuthService
 
     public function sendOtp(string $login, string $purpose): array
     {
+        $login = trim($login);
         $channel = $this->detectLoginChannel($login);
         $normalized = $this->normalizeLoginIdentifier($login);
         $user = $this->findByLogin($normalized);
 
         if (! $user) {
-            return [
-                'user' => null,
-                'channel' => $channel,
-                'login' => $normalized,
-                'otp' => null,
-            ];
+            if ($purpose === 'login') {
+                $this->assertRegisteredForLogin(null);
+            }
+
+            throw ValidationException::withMessages([
+                'login' => [self::MESSAGE_LOGIN_NOT_REGISTERED],
+            ]);
         }
 
         $this->ensureActive($user);
+        $this->assertOtpDestinationAvailable($user, $channel);
 
         $otp = $this->issueOtp($user, $purpose);
-        $deliveredOn = $this->otpDelivery->send($user, $otp, $channel, $purpose);
+        $deliveredOn = $this->otpDelivery->send($user, $otp, $channel, $purpose, $login);
 
         return [
             'user' => $user,
@@ -128,6 +145,21 @@ class UserAuthService
             'login' => $normalized,
             'otp' => null,
         ];
+    }
+
+    private function assertOtpDestinationAvailable(User $user, string $channel): void
+    {
+        if ($channel === 'email' && blank($user->email)) {
+            throw ValidationException::withMessages([
+                'login' => ['Is account par email registered nahi hai. Mobile number se OTP try karein.'],
+            ]);
+        }
+
+        if ($channel === 'phone' && blank($user->phone)) {
+            throw ValidationException::withMessages([
+                'login' => ['Is account par mobile registered nahi hai. Email se OTP try karein.'],
+            ]);
+        }
     }
 
     public function resetPasswordWithOtp(string $login, string $otp, string $password): User
@@ -198,9 +230,11 @@ class UserAuthService
     {
         $user = $this->findByLogin($this->normalizeLoginIdentifier($login));
 
-        if (! $user || ! $user->password || ! Hash::check($password, $user->password)) {
+        $this->assertRegisteredForLogin($user);
+
+        if (! $user->password || ! Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
-                'login' => ['Invalid email/phone or password.'],
+                'login' => ['Email/phone ya password galat hai. / Invalid email/phone or password.'],
             ]);
         }
 

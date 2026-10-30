@@ -193,6 +193,23 @@
             </div>
         </a>
 
+        {{-- NOTIFICATIONS --}}
+        <div class="menu-section">NOTIFICATIONS</div>
+        <a href="{{ route('admin.notifications.index') }}"
+            class="menu-item {{ request()->routeIs('admin.notifications.index', 'admin.notifications.store', 'admin.notifications.resend') ? 'active' : '' }}">
+            <div class="menu-item-content">
+                <i class="bi bi-bell"></i>
+                <span>Notification</span>
+            </div>
+        </a>
+        <a href="{{ route('admin.notifications.groups.index') }}"
+            class="menu-item {{ request()->routeIs('admin.notifications.groups.*') ? 'active' : '' }}">
+            <div class="menu-item-content">
+                <i class="bi bi-people-fill"></i>
+                <span>Group</span>
+            </div>
+        </a>
+
         <a href="javascript:void(0)" class="menu-item logout-item" onclick="sidebarLogout()">
             <div class="menu-item-content"><i class="bi bi-box-arrow-left"></i><span>Logout</span></div>
         </a>

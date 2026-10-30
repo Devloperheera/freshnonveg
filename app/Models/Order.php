@@ -32,6 +32,7 @@ class Order extends Model
         'total',
         'status',
         'bill_emailed_at',
+        'confirmation_sms_sent_at',
         'cancelled_at',
         'cancel_reason',
         'admin_seen_at',
@@ -52,6 +53,7 @@ class Order extends Model
             'wallet_amount' => 'decimal:2',
             'delivery_date' => 'date',
             'bill_emailed_at' => 'datetime',
+            'confirmation_sms_sent_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'admin_seen_at' => 'datetime',
         ];

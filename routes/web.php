@@ -5,6 +5,7 @@ use App\Http\Controllers\Website\CartController;
 use App\Http\Controllers\Website\CheckoutController;
 use App\Http\Controllers\Website\CatalogSearchController;
 use App\Http\Controllers\Website\DashboardController;
+use App\Http\Controllers\Website\DeleteAccountController;
 use App\Http\Controllers\Website\HomeController;
 use App\Http\Controllers\Website\AddressSuggestController;
 use App\Http\Controllers\Website\PincodeController;
@@ -29,6 +30,8 @@ Route::get('/legal/{slug}', function (string $slug) {
 })->where('slug', 'terms-conditions|privacy-policy|refund-policy|contact|blog');
 
 Route::get('/catalog/search', CatalogSearchController::class)->middleware('throttle:search')->name('catalog.search');
+
+Route::get('/delete', [DeleteAccountController::class, 'show'])->name('account.delete');
 
 Route::post('/checkout/cashfree/webhook', [CheckoutController::class, 'cashfreeWebhook'])
     ->middleware('throttle:webhook')
@@ -80,6 +83,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::delete('/delete', [DeleteAccountController::class, 'destroy'])->middleware('throttle:login')->name('account.delete.destroy');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 

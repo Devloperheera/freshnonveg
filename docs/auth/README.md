@@ -99,6 +99,8 @@ Same field as web: **ईमेल या मोबाइल**.
 
 ## Related
 
+- [Push notifications & delete account](../push-notifications/README.md)
+
 - [Catalog](../catalog/README.md)
 - [User dashboard](../user/README.md)
 - [Cart → Buy](../cart/README.md)

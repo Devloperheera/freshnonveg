@@ -168,14 +168,12 @@
 
         commerceFetch(form.action, { method: 'POST', body: fd })
             .then(function (data) {
+                if (isCart) {
+                    window.location.assign(data.cart_url || '/cart');
+                    return;
+                }
                 showToast(data.message || 'Done');
                 setBadges(data.cart_count || 0, data.wishlist_count || 0);
-                if (isCart && btn) {
-                    btn.classList.add('commerce-btn-pulse');
-                    setTimeout(function () {
-                        btn.classList.remove('commerce-btn-pulse');
-                    }, 600);
-                }
             })
             .catch(function (err) {
                 var msg =

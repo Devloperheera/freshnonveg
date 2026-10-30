@@ -48,4 +48,13 @@ return [
         'sender' => env('SMS_SENDER'),
     ],
 
+    'fast2sms' => [
+        'api_key' => env('FAST2SMS_API_KEY'),
+        'sender_id' => env('FAST2SMS_SENDER_ID', 'SIBPLR'),
+        'message_id' => env('FAST2SMS_MESSAGE_ID', '187171'),
+        'dlt_template_id' => env('FAST2SMS_DLT_TEMPLATE_ID', '1707174910458075851'),
+        'order_message_id' => env('FAST2SMS_ORDER_MESSAGE_ID', '206862'),
+        'order_dlt_template_id' => env('FAST2SMS_ORDER_DLT_TEMPLATE_ID', '1707176763047601720'),
+    ],
+
 ];

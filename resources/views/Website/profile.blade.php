@@ -74,6 +74,14 @@
             <button type="submit" class="ud-btn">{{ $hasPassword ? 'Update password' : 'Set password' }}</button>
         </form>
     </div>
+
+    <div class="ud-card border-danger-subtle">
+        <div class="ud-card-head">
+            <h2 class="text-danger">Delete account</h2>
+        </div>
+        <p class="small text-muted mb-3">Account hamesha ke liye band karna ho to dedicated page use karein. URL: <a href="{{ route('account.delete') }}">{{ url('/delete') }}</a></p>
+        <a href="{{ route('account.delete') }}" class="btn btn-outline-danger btn-sm">Delete account page</a>
+    </div>
 </div>
 
 @include('Website.Auth.partials.pass-toggle-script')
