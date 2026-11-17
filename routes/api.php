@@ -76,6 +76,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/checkout/pincode/{pincode}', [ApiLocationController::class, 'pincode'])->middleware('throttle:search');
         Route::get('/checkout/address-suggest', [ApiLocationController::class, 'addressSuggest'])->middleware('throttle:search');
         Route::post('/checkout', [ApiCheckoutController::class, 'store'])->middleware('throttle:checkout');
+        Route::get('/checkout/orders/{order}/payment', [ApiPaymentController::class, 'resume']);
         Route::post('/checkout/verify', [ApiPaymentController::class, 'verify'])->middleware('throttle:checkout');
         Route::get('/checkout/orders/{order}/status', [ApiPaymentController::class, 'status']);
         Route::get('/checkout/orders/{order}/success', [ApiPaymentController::class, 'success']);

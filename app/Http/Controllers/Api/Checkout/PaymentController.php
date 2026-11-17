@@ -7,14 +7,50 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\CheckoutService;
 use App\Services\OrderBillNotifier;
+use App\Support\ApiClientContext;
 use App\Support\CheckoutApi;
 use App\Support\UserDashboardApi;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
     public function __construct(private CheckoutService $checkout) {}
+
+    public function resume(Request $request, Order $order): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless((int) $order->user_id === (int) $user->id, 404);
+
+        if ($order->status !== 'awaiting_payment') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Is order par payment dubara start nahi ho sakti.',
+            ], 422);
+        }
+
+        try {
+            $session = $this->checkout->startPayment($order, $user, $request);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: 'Payment start nahi ho paya.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        $forMobileApp = ApiClientContext::isMobileApp($request);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order' => UserDashboardApi::orderDetail($order->fresh()->load(['items.product.images', 'user']), $user),
+                'payment' => $this->checkout->paymentPayload($order, $session, $forMobileApp),
+            ],
+        ]);
+    }
 
     public function verify(Request $request, OrderBillNotifier $bills): JsonResponse
     {

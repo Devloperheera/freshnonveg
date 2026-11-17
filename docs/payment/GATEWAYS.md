@@ -96,6 +96,20 @@ Test mode me paisa nahi katta. Live ke liye admin `rzp_live_` key lagayega — a
 
 ## Cashfree
 
+### Android APK / debug build — `installer_package_not_approved`
+
+Agar error aaye: *"NOT_AVAILABLE is not a trusted source … installer_package_not_approved"* — ye **native PG SDK** ka restriction hai (app Play Store se install nahi hai).
+
+**Fix (app code):**
+
+1. Har API checkout request par header bhejo: `X-Client: mobile-app` (ya `X-App-Platform: android`)
+2. Response me `payment.integration.preferred === 'hosted_checkout_url'` ho to **native SDK mat chalao**
+3. `payment.checkout_url` (ya `payment_link`) ko **Chrome Custom Tabs** / **in-app WebView** (`url_launcher` / `webview_flutter`) se kholo
+4. Payment ke baad user ko app me laao → `POST /checkout/verify` with `order_number`
+5. Dubara URL chahiye ho to: `GET /api/v1/checkout/orders/{id}/payment`
+
+Website wala flow change nahi hota — sirf mobile par hosted URL use karo.
+
 ### Package
 
 ```yaml

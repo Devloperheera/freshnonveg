@@ -33,6 +33,10 @@ Route::get('/catalog/search', CatalogSearchController::class)->middleware('throt
 
 Route::get('/delete', [DeleteAccountController::class, 'show'])->name('account.delete');
 
+Route::get('/app/payment/return/{order_number}/{status}', [\App\Http\Controllers\Website\AppPaymentReturnController::class, 'show'])
+    ->where('status', 'paid|failed|pending')
+    ->name('app.payment.return');
+
 Route::post('/checkout/cashfree/webhook', [CheckoutController::class, 'cashfreeWebhook'])
     ->middleware('throttle:webhook')
     ->name('checkout.cashfree.webhook');

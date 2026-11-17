@@ -62,4 +62,9 @@ return [
         'number' => env('WHATSAPP_NUMBER', '919717156362'),
     ],
 
+    'mobile_app' => [
+        // Cashfree browser return ke baad app kholne ke liye (Flutter: app_links / uni_links)
+        'payment_deep_link' => env('APP_MOBILE_PAYMENT_DEEP_LINK', 'freshnonveg://payment/return'),
+    ],
+
 ];

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Checkout;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\CheckoutService;
+use App\Support\ApiClientContext;
 use App\Support\CheckoutApi;
 use App\Support\UserDashboardApi;
 use Illuminate\Http\JsonResponse;
@@ -87,15 +88,18 @@ class CheckoutController extends Controller
         $data = $request->validate($this->checkout->placeRules());
 
         $order = $this->checkout->placeOrder($user, $data);
-        $session = $this->checkout->startPayment($order, $user);
+        $session = $this->checkout->startPayment($order, $user, $request);
         $order->refresh()->load(['items.product.images', 'user']);
+        $forMobileApp = ApiClientContext::isMobileApp($request);
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment start ho gaya. '.$order->paymentGatewayLabel().' se pay karein.',
+            'message' => $forMobileApp && $order->payment_method === 'cashfree'
+                ? 'Payment start ho gaya. checkout_url ko browser ya WebView me kholo.'
+                : 'Payment start ho gaya. '.$order->paymentGatewayLabel().' se pay karein.',
             'data' => [
                 'order' => UserDashboardApi::orderDetail($order, $user),
-                'payment' => $this->checkout->paymentPayload($order, $session),
+                'payment' => $this->checkout->paymentPayload($order, $session, $forMobileApp),
             ],
         ], 201);
     }

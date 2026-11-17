@@ -15,8 +15,13 @@ class CashfreeService
     /**
      * @return array<string, mixed>
      */
-    public function createPaymentSession(Order $order, User $user): array
+    public function createPaymentSession(Order $order, User $user, bool $forMobileApp = false): array
     {
+        $returnBase = $this->httpsUrl(route('checkout.cashfree.return', [], true));
+        $returnUrl = $forMobileApp
+            ? $returnBase.'?source=app&order_id={order_id}'
+            : $returnBase.'?order_id={order_id}';
+
         $payload = [
             'order_id' => $order->order_number,
             'order_amount' => round((float) $order->total, 2),
@@ -28,7 +33,7 @@ class CashfreeService
                 'customer_name' => $user->name ?: 'Customer',
             ],
             'order_meta' => [
-                'return_url' => $this->httpsUrl(route('checkout.cashfree.return', [], true)).'?order_id={order_id}',
+                'return_url' => $returnUrl,
                 'notify_url' => $this->httpsUrl(route('checkout.cashfree.webhook', [], true)),
             ],
         ];

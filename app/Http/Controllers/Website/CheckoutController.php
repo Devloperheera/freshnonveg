@@ -70,7 +70,7 @@ class CheckoutController extends Controller
 
         try {
             $order = $this->checkout->placeOrder($user, $data);
-            $session = $this->checkout->startPayment($order, $user);
+            $session = $this->checkout->startPayment($order, $user, $request);
         } catch (ValidationException $e) {
             return back()->withInput()->withErrors($e->errors());
         }
@@ -162,8 +162,28 @@ class CheckoutController extends Controller
 
         $order = Order::query()
             ->where('order_number', $merchantOrderId)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+            ->first();
+
+        if (! $order) {
+            return redirect()->route('cart')->withErrors(['payment' => 'Order nahi mili.']);
+        }
+
+        $fromApp = strtolower((string) $request->query('source')) === 'app';
+
+        if ($fromApp) {
+            $paid = $this->checkout->verifyPaid($order);
+
+            if (! $paid) {
+                $this->checkout->markFailedIfUnpaid($order);
+            }
+
+            return redirect()->route('app.payment.return', [
+                'order_number' => $order->order_number,
+                'status' => $paid ? 'paid' : 'failed',
+            ]);
+        }
+
+        abort_unless(auth()->check() && (int) auth()->id() === (int) $order->user_id, 403);
 
         if ($this->checkout->verifyPaid($order)) {
             return redirect()

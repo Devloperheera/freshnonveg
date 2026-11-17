@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\PaymentGateway;
 use App\Models\User;
 use App\Support\CheckoutDelivery;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -339,14 +340,15 @@ class CheckoutService
      *
      * @return array<string, mixed>
      */
-    public function startPayment(Order $order, User $user): array
+    public function startPayment(Order $order, User $user, ?Request $request = null): array
     {
         $gateway = (string) $order->payment_method;
+        $forMobileApp = \App\Support\ApiClientContext::isMobileApp($request);
 
         try {
             $session = $gateway === PaymentGateway::RAZORPAY
                 ? $this->razorpay->createOrder($order, $user)
-                : $this->cashfree->createPaymentSession($order, $user);
+                : $this->cashfree->createPaymentSession($order, $user, $forMobileApp);
             $user->cartItems()->delete();
 
             return $session;
@@ -455,12 +457,12 @@ class CheckoutService
      * @param  array<string, mixed>  $session
      * @return array<string, mixed>
      */
-    public function paymentPayload(Order $order, array $session): array
+    public function paymentPayload(Order $order, array $session, bool $forMobileApp = false): array
     {
         if ($order->payment_method === PaymentGateway::RAZORPAY) {
             $options = $this->razorpay->checkoutOptions($order);
 
-            return [
+            return array_merge([
                 'gateway' => PaymentGateway::RAZORPAY,
                 'environment' => $this->razorpay->environmentLabel(),
                 'order_id' => $order->order_number,
@@ -474,10 +476,12 @@ class CheckoutService
                 'cf_order_id' => null,
                 'payment_link' => null,
                 'checkout_url' => null,
-            ];
+            ], $this->mobileIntegrationHints(PaymentGateway::RAZORPAY, $forMobileApp, null));
         }
 
-        return [
+        $checkoutUrl = $this->cashfree->checkoutRedirectUrl($order->order_number, $session);
+
+        return array_merge([
             'gateway' => PaymentGateway::CASHFREE,
             'environment' => $this->cashfree->environmentLabel(),
             'order_id' => $order->order_number,
@@ -486,7 +490,29 @@ class CheckoutService
             'payment_session_id' => $session['payment_session_id'] ?? null,
             'cf_order_id' => $session['cf_order_id'] ?? null,
             'payment_link' => $session['payment_link'] ?? null,
-            'checkout_url' => $this->cashfree->checkoutRedirectUrl($order->order_number, $session),
+            'checkout_url' => $checkoutUrl,
+        ], $this->mobileIntegrationHints(PaymentGateway::CASHFREE, $forMobileApp, $checkoutUrl));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mobileIntegrationHints(string $gateway, bool $forMobileApp, ?string $checkoutUrl): array
+    {
+        $preferHosted = $forMobileApp && $gateway === PaymentGateway::CASHFREE;
+
+        return [
+            'integration' => [
+                'client' => $forMobileApp ? 'mobile_app' : 'web',
+                'preferred' => $preferHosted ? 'hosted_checkout_url' : 'sdk',
+                'use_native_sdk' => ! $preferHosted,
+                'open_checkout_in' => $preferHosted ? ['external_browser', 'in_app_webview'] : ['sdk', 'webview'],
+                'checkout_url' => $checkoutUrl,
+            ],
+            'mobile_hints' => $preferHosted ? [
+                'title' => 'Cashfree hosted checkout use karein',
+                'message' => 'Debug APK / Play Store ke bina install par Cashfree native SDK fail ho sakta hai (installer_package_not_approved). payment.checkout_url ko Chrome Custom Tabs ya in-app WebView me kholo; payment ke baad POST /checkout/verify call karein.',
+            ] : null,
         ];
     }
 
