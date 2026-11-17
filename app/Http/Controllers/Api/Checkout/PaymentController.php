@@ -88,12 +88,14 @@ class PaymentController extends Controller
         $user = $request->user();
         abort_unless((int) $order->user_id === (int) $user->id, 404);
 
-        if ($order->payment_method === 'cashfree' && $order->status === 'awaiting_payment') {
+        $online = CheckoutService::isOnlineGateway($order->payment_method);
+
+        if ($online && $order->status === 'awaiting_payment') {
             $this->checkout->verifyPaid($order);
             $order->refresh();
         }
 
-        if ($order->payment_method === 'cashfree' && ! in_array($order->status, ['paid', 'confirmed'], true)) {
+        if ($online && ! in_array($order->status, ['paid', 'confirmed'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Payment abhi pending hai.',

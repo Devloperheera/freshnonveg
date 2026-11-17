@@ -6,6 +6,7 @@ use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\PaymentGateway;
 use App\Models\User;
 use App\Support\CheckoutDelivery;
 use Illuminate\Support\Collection;
@@ -20,13 +21,51 @@ class CheckoutService
 {
     public function __construct(
         private CashfreeService $cashfree,
+        private RazorpayService $razorpay,
         private WalletService $wallet,
         private DeliveryZoneChecker $zones,
     ) {}
 
+    /**
+     * Admin ne jo gateway active kiya hai (keys ke saath). Null = koi online payment ready nahi.
+     */
+    public function activeGateway(): ?string
+    {
+        $active = PaymentGateway::active();
+        if ($active) {
+            return $active->code;
+        }
+
+        // Purana setup: payment_gateways table / row nahi hai lekin .env me Cashfree keys hain.
+        if (! PaymentGateway::forCode(PaymentGateway::CASHFREE)
+            && filled(config('cashfree.app_id'))
+            && filled(config('cashfree.secret_key'))) {
+            return PaymentGateway::CASHFREE;
+        }
+
+        return null;
+    }
+
     public function paymentConfigured(): bool
     {
-        return filled(config('cashfree.app_id')) && filled(config('cashfree.secret_key'));
+        return $this->activeGateway() !== null;
+    }
+
+    public static function isOnlineGateway(?string $method): bool
+    {
+        return in_array($method, PaymentGateway::CODES, true);
+    }
+
+    /**
+     * Order jis gateway se bana tha usi se status sync karo.
+     */
+    public function syncOrderPayment(Order $order): bool
+    {
+        return match ($order->payment_method) {
+            PaymentGateway::RAZORPAY => $this->razorpay->syncLocalOrderPayment($order),
+            PaymentGateway::CASHFREE => $this->cashfree->syncLocalOrderPayment($order),
+            default => false,
+        };
     }
 
     /**
@@ -50,7 +89,7 @@ class CheckoutService
                 'max:50',
                 Rule::in(array_keys(CheckoutDelivery::timeSlots())),
             ],
-            'payment_method' => ['required', 'in:cashfree'],
+            'payment_method' => ['nullable', 'in:cashfree,razorpay,online'],
             'coupon_code' => ['nullable', 'string', 'max:40'],
             'use_wallet' => ['nullable', 'boolean'],
             'order_notes' => ['nullable', 'string', 'max:1000'],
@@ -69,7 +108,7 @@ class CheckoutService
     {
         $pending = Order::query()
             ->where('user_id', $user->id)
-            ->where('payment_method', 'cashfree')
+            ->whereIn('payment_method', PaymentGateway::CODES)
             ->where('status', 'awaiting_payment')
             ->latest('id')
             ->first();
@@ -79,7 +118,7 @@ class CheckoutService
         }
 
         try {
-            if ($this->cashfree->syncLocalOrderPayment($pending)) {
+            if ($this->syncOrderPayment($pending)) {
                 return $pending->fresh(['items.product.images', 'user']);
             }
         } catch (RuntimeException) {
@@ -137,7 +176,9 @@ class CheckoutService
             'total' => $total,
             'minimum_online_pay' => 1.0,
             'time_slots' => CheckoutDelivery::timeSlots(),
-            'payment_method' => 'cashfree',
+            'payment_method' => $this->activeGateway() ?? PaymentGateway::CASHFREE,
+            'payment_gateway' => $this->activeGateway(),
+            'payment_gateway_label' => PaymentGateway::label($this->activeGateway()),
             'payment_configured' => $this->paymentConfigured(),
             'is_empty' => $items->isEmpty(),
         ];
@@ -197,11 +238,13 @@ class CheckoutService
 
         $this->releaseAbandonedOrders($user->id);
 
-        if (! $this->paymentConfigured()) {
+        $gateway = $this->activeGateway();
+        if ($gateway === null) {
             throw ValidationException::withMessages([
-                'payment_method' => 'Online payment configure nahi hai. Admin se Cashfree keys set karwayein.',
+                'payment_method' => 'Online payment configure nahi hai. Admin panel se payment gateway (Cashfree / Razorpay) active karein.',
             ]);
         }
+        $data['payment_method'] = $gateway;
 
         $subtotal = $items->sum(fn (CartItem $item) => $item->lineTotal());
         $deliveryFee = CheckoutDelivery::feeForType($data['delivery_schedule_type']);
@@ -292,27 +335,45 @@ class CheckoutService
     }
 
     /**
+     * Order ke gateway par payment start karo (Cashfree session / Razorpay order).
+     *
      * @return array<string, mixed>
      */
-    public function startCashfree(Order $order, User $user): array
+    public function startPayment(Order $order, User $user): array
     {
+        $gateway = (string) $order->payment_method;
+
         try {
-            $session = $this->cashfree->createPaymentSession($order, $user);
+            $session = $gateway === PaymentGateway::RAZORPAY
+                ? $this->razorpay->createOrder($order, $user)
+                : $this->cashfree->createPaymentSession($order, $user);
             $user->cartItems()->delete();
 
             return $session;
         } catch (RuntimeException $e) {
-            Log::error('Cashfree checkout failed', ['order' => $order->order_number, 'error' => $e->getMessage()]);
+            Log::error(PaymentGateway::label($gateway).' checkout failed', ['order' => $order->order_number, 'error' => $e->getMessage()]);
             $this->failOrder($order);
 
-            $message = str_contains($e->getMessage(), '403')
+            $message = $gateway === PaymentGateway::CASHFREE && str_contains($e->getMessage(), '403')
                 ? 'Cashfree ne payment block ki (403). Live website ka HTTPS domain Cashfree dashboard me whitelist karein, aur production API keys sahi hon.'
-                : 'Payment start nahi ho payi. Cart safe hai, dubara try karein.';
+                : ($gateway === PaymentGateway::RAZORPAY && str_contains($e->getMessage(), '401')
+                    ? 'Razorpay keys galat hain (401). Admin panel me Razorpay Key ID / Secret check karein.'
+                    : 'Payment start nahi ho payi. Cart safe hai, dubara try karein.');
 
             throw ValidationException::withMessages([
                 'payment_method' => $message,
             ]);
         }
+    }
+
+    /**
+     * @deprecated startPayment() use karein.
+     *
+     * @return array<string, mixed>
+     */
+    public function startCashfree(Order $order, User $user): array
+    {
+        return $this->startPayment($order, $user);
     }
 
     public function verifyPaid(Order $order): bool
@@ -322,9 +383,9 @@ class CheckoutService
         }
 
         try {
-            return $this->cashfree->syncLocalOrderPayment($order);
+            return $this->syncOrderPayment($order);
         } catch (RuntimeException $e) {
-            Log::warning('Cashfree verify failed', ['order' => $order->order_number, 'error' => $e->getMessage()]);
+            Log::warning(PaymentGateway::label($order->payment_method).' verify failed', ['order' => $order->order_number, 'error' => $e->getMessage()]);
 
             return false;
         }
@@ -373,13 +434,13 @@ class CheckoutService
     {
         $pending = Order::query()
             ->where('user_id', $userId)
-            ->where('payment_method', 'cashfree')
+            ->whereIn('payment_method', PaymentGateway::CODES)
             ->where('status', 'awaiting_payment')
             ->get();
 
         foreach ($pending as $order) {
             try {
-                if ($this->cashfree->syncLocalOrderPayment($order)) {
+                if ($this->syncOrderPayment($order)) {
                     continue;
                 }
             } catch (RuntimeException) {
@@ -396,9 +457,29 @@ class CheckoutService
      */
     public function paymentPayload(Order $order, array $session): array
     {
+        if ($order->payment_method === PaymentGateway::RAZORPAY) {
+            $options = $this->razorpay->checkoutOptions($order);
+
+            return [
+                'gateway' => PaymentGateway::RAZORPAY,
+                'environment' => $this->razorpay->environmentLabel(),
+                'order_id' => $order->order_number,
+                'order_amount' => (float) $order->total,
+                'order_currency' => 'INR',
+                'key_id' => $options['key'],
+                'razorpay_order_id' => $order->razorpay_order_id,
+                'amount_paise' => $options['amount'],
+                'checkout_options' => $options,
+                'payment_session_id' => null,
+                'cf_order_id' => null,
+                'payment_link' => null,
+                'checkout_url' => null,
+            ];
+        }
+
         return [
-            'gateway' => 'cashfree',
-            'environment' => (string) config('cashfree.environment'),
+            'gateway' => PaymentGateway::CASHFREE,
+            'environment' => $this->cashfree->environmentLabel(),
             'order_id' => $order->order_number,
             'order_amount' => (float) $order->total,
             'order_currency' => 'INR',

@@ -46,6 +46,25 @@
 .dash-g canvas { width:100% !important; height:220px !important; }
 .dash-recent { background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; }
 .dash-recent h6 { font-size:12px; font-weight:800; text-transform:uppercase; padding:12px 14px; margin:0; border-bottom:1px solid #e2e8f0; background:#f8fafc; }
+
+/* Amount hide / show */
+.amt-eye {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 7px; border: 0; padding: 0;
+    background: rgba(255,255,255,.65); color: inherit; cursor: pointer;
+    font-size: 13px; vertical-align: middle; line-height: 1; opacity: .8;
+    transition: opacity .15s, background .15s;
+}
+.amt-eye:hover, .amt-eye:focus-visible { opacity: 1; background: rgba(255,255,255,.95); outline: none; box-shadow: 0 0 0 2px rgba(15,23,42,.15); }
+.dash-card .amt-eye { position: absolute; top: 12px; right: 12px; }
+.dash-card { position: relative; }
+.dash-recent th .amt-eye, .dash-g h6 .amt-eye { background: #f1f5f9; margin-left: 4px; }
+.amt-mask { display: none; letter-spacing: .12em; }
+[data-amt].is-hidden .amt-real { display: none; }
+[data-amt].is-hidden .amt-mask { display: inline; }
+.dash-g canvas { transition: filter .2s; }
+.dash-g.is-hidden canvas { filter: blur(9px); pointer-events: none; user-select: none; }
+.amt-toggle-all { font-size: 12px; font-weight: 700; }
 </style>
 @endsection
 
@@ -56,16 +75,47 @@
             <h2 class="section-title mb-0 border-0 pb-0"><i class="fas fa-chart-line me-2"></i> Dashboard</h2>
             <p class="small text-muted mb-0 mt-1">Cards clickable hain — graph last 14 din ka live data hai.</p>
         </div>
-        <span class="small text-muted">{{ now()->timezone(config('app.timezone'))->format('d M Y, h:i A') }}</span>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline-secondary amt-toggle-all" id="amtToggleAll"
+                    aria-pressed="false">
+                <i class="bi bi-eye-slash me-1"></i><span>Saare amount hide karo</span>
+            </button>
+            <span class="small text-muted">{{ now()->timezone(config('app.timezone'))->format('d M Y, h:i A') }}</span>
+        </div>
     </div>
 
     <div class="dash-cards">
         @foreach($cards as $card)
-            <a href="{{ $card['url'] }}" class="dash-card tone-{{ $card['tone'] }}">
+            @php
+                $isMoney = str_starts_with((string) $card['value'], '₹');
+                $subIsMoney = str_starts_with((string) $card['sub'], '₹');
+                $amtKey = 'card-'.\Illuminate\Support\Str::slug($card['label']);
+            @endphp
+            <a href="{{ $card['url'] }}" class="dash-card tone-{{ $card['tone'] }}"
+               @if($isMoney || $subIsMoney) data-amt="{{ $amtKey }}" @endif>
+                @if($isMoney || $subIsMoney)
+                    <button type="button" class="amt-eye" data-amt-toggle="{{ $amtKey }}"
+                            title="Amount hide / show" aria-label="{{ $card['label'] }} amount hide karo">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                @endif
                 <div class="ico"><i class="bi {{ $card['icon'] }}"></i></div>
                 <div class="lbl">{{ $card['label'] }}</div>
-                <div class="val">{{ $card['value'] }}</div>
-                <div class="sub">{{ $card['sub'] }}</div>
+                <div class="val">
+                    @if($isMoney)
+                        <span class="amt-real">{{ $card['value'] }}</span><span class="amt-mask">₹ ••••</span>
+                    @else
+                        {{ $card['value'] }}
+                    @endif
+                </div>
+                <div class="sub">
+                    @if($subIsMoney)
+                        @php [$subAmt, $subRest] = array_pad(explode(' ', (string) $card['sub'], 2), 2, ''); @endphp
+                        <span class="amt-real">{{ $subAmt }}</span><span class="amt-mask">₹ ••</span> {{ $subRest }}
+                    @else
+                        {{ $card['sub'] }}
+                    @endif
+                </div>
             </a>
         @endforeach
     </div>
@@ -75,8 +125,14 @@
             <h6>Orders · 14 days</h6>
             <canvas id="chartOrders"></canvas>
         </div>
-        <div class="dash-g">
-            <h6>Revenue · 14 days</h6>
+        <div class="dash-g" data-amt="chart-revenue">
+            <h6 class="d-flex justify-content-between align-items-center">
+                <span>Revenue · 14 days</span>
+                <button type="button" class="amt-eye" data-amt-toggle="chart-revenue"
+                        title="Amount hide / show" aria-label="Revenue graph hide karo">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </h6>
             <canvas id="chartRevenue"></canvas>
         </div>
         <div class="dash-g">
@@ -95,12 +151,18 @@
             <a href="{{ route('admin.orders.index', [], false) }}" class="small">View all</a>
         </h6>
         <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
+            <table class="table table-sm align-middle mb-0" data-amt="recent-orders">
                 <thead>
                     <tr>
                         <th>Order</th>
                         <th>Customer</th>
-                        <th>Amount</th>
+                        <th>
+                            Amount
+                            <button type="button" class="amt-eye" data-amt-toggle="recent-orders"
+                                    title="Amount hide / show" aria-label="Order amounts hide karo">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </th>
                         <th>Status</th>
                         <th>When</th>
                     </tr>
@@ -110,7 +172,7 @@
                         <tr>
                             <td><a href="{{ route('admin.orders.show', $order, false) }}" class="fw-semibold text-success">{{ $order->order_number }}</a></td>
                             <td>{{ $order->user?->name ?? '—' }}<div class="small text-muted">{{ $order->user?->phone }}</div></td>
-                            <td class="fw-bold">₹{{ number_format((float) $order->total, 2) }}</td>
+                            <td class="fw-bold"><span class="amt-real">₹{{ number_format((float) $order->total, 2) }}</span><span class="amt-mask">₹ ••••</span></td>
                             <td><span class="badge bg-secondary text-capitalize">{{ str_replace('_', ' ', $order->status) }}</span></td>
                             <td class="small text-muted">{{ $order->created_at?->format('d M, h:i A') }}</td>
                         </tr>
@@ -190,6 +252,70 @@
         },
         options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid }, x: { grid: { display: false } } }, maintainAspectRatio: false }
     });
+})();
+
+/* ---------- Amount hide / show (eye icon) ---------- */
+(function () {
+    var STORE = 'fnv_admin_dash_hidden_amounts';
+    var groups = Array.prototype.slice.call(document.querySelectorAll('[data-amt]'));
+    var allBtn = document.getElementById('amtToggleAll');
+    var state = {};
+
+    try { state = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { state = {}; }
+
+    function save() {
+        try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
+    }
+
+    function apply(key) {
+        var hidden = !!state[key];
+        groups.forEach(function (el) {
+            if (el.getAttribute('data-amt') === key) el.classList.toggle('is-hidden', hidden);
+        });
+        document.querySelectorAll('[data-amt-toggle="' + key + '"]').forEach(function (btn) {
+            var icon = btn.querySelector('i');
+            if (icon) icon.className = hidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+            btn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+            btn.title = hidden ? 'Amount dikhao' : 'Amount hide karo';
+        });
+    }
+
+    function keys() {
+        return groups.map(function (el) { return el.getAttribute('data-amt'); });
+    }
+
+    function syncAllBtn() {
+        if (!allBtn) return;
+        var allHidden = keys().length > 0 && keys().every(function (k) { return !!state[k]; });
+        allBtn.setAttribute('aria-pressed', allHidden ? 'true' : 'false');
+        allBtn.querySelector('i').className = (allHidden ? 'bi bi-eye' : 'bi bi-eye-slash') + ' me-1';
+        allBtn.querySelector('span').textContent = allHidden ? 'Saare amount dikhao' : 'Saare amount hide karo';
+    }
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-amt-toggle]');
+        if (!btn) return;
+        // Card ek link hai — eye dabane par page na khule
+        e.preventDefault();
+        e.stopPropagation();
+        var key = btn.getAttribute('data-amt-toggle');
+        state[key] = !state[key];
+        apply(key);
+        save();
+        syncAllBtn();
+    }, true);
+
+    if (allBtn) {
+        allBtn.addEventListener('click', function () {
+            var hide = allBtn.getAttribute('aria-pressed') !== 'true';
+            keys().forEach(function (k) { state[k] = hide; apply(k); });
+            save();
+            syncAllBtn();
+        });
+    }
+
+    keys().forEach(apply);
+    syncAllBtn();
 })();
 </script>
 @endsection

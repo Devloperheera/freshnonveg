@@ -1,5 +1,8 @@
 # FreshNonVeg — Cart → Buy API (Mobile / App)
 
+> **Naya:** Ab Cashfree **aur** Razorpay dono support hain (admin jo active kare). Latest payment flow ke liye
+> **[docs/payment](../payment/README.md)** dekhein — yahan ke Cashfree-only examples purane hain.
+
 Website cart, wishlist, checkout, Cashfree payment aur **tax invoice** — same application logic.
 
 Auth: Sanctum **Bearer token** (see [Auth](../auth/README.md)).

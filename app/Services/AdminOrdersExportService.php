@@ -157,7 +157,7 @@ class AdminOrdersExportService
             $order->created_at?->format('Y-m-d H:i:s'),
             $order->status,
             $order->payment_method,
-            $order->cashfree_payment_id,
+            $order->paymentReference(),
             $order->user_id,
             $order->user?->name,
             $order->user?->email,

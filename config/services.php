@@ -57,4 +57,9 @@ return [
         'order_dlt_template_id' => env('FAST2SMS_ORDER_DLT_TEMPLATE_ID', '1707176763047601720'),
     ],
 
+    'whatsapp' => [
+        // Country code ke saath, bina + (default: 9717156362 → 919717156362)
+        'number' => env('WHATSAPP_NUMBER', '919717156362'),
+    ],
+
 ];

@@ -49,7 +49,7 @@
                 </li>
                 <li class="{{ $isPaid || $isCancelled ? 'done' : '' }}">
                     <span class="ud-tl-dot"><i class="bi bi-credit-card"></i></span>
-                    <div><strong>Payment {{ $isPaid || $isCancelled ? 'successful' : 'pending' }}</strong><span>Online · Cashfree</span></div>
+                    <div><strong>Payment {{ $isPaid || $isCancelled ? 'successful' : 'pending' }}</strong><span>Online · {{ $order->paymentGatewayLabel() }}</span></div>
                 </li>
                 @if($isCancelled)
                     <li class="done cancelled">

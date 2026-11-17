@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\PaymentGateway;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -61,16 +62,14 @@ class CashfreeService
         }
 
         $paymentSessionId = (string) ($session['payment_session_id'] ?? '');
-        $base = rtrim((string) config('cashfree.checkout_base_url'), '/');
+        $base = $this->isProduction() ? 'https://payments.cashfree.com' : 'https://sandbox.cashfree.com';
 
         return $base.'/pg/view/sessions/checkout?payment_session_id='.rawurlencode($paymentSessionId);
     }
 
     public function checkoutMode(): string
     {
-        return strtoupper((string) config('cashfree.environment')) === 'PRODUCTION'
-            ? 'production'
-            : 'sandbox';
+        return $this->isProduction() ? 'production' : 'sandbox';
     }
 
     /**
@@ -114,7 +113,7 @@ class CashfreeService
 
     public function webhookIsAuthentic(Request $request): bool
     {
-        $secret = (string) config('cashfree.secret_key');
+        $secret = $this->secretKey();
         $timestamp = (string) $request->header('x-webhook-timestamp', '');
         $signature = (string) $request->header('x-webhook-signature', '');
 
@@ -169,8 +168,8 @@ class CashfreeService
     private function headers(): array
     {
         return [
-            'x-client-id' => (string) config('cashfree.app_id'),
-            'x-client-secret' => (string) config('cashfree.secret_key'),
+            'x-client-id' => $this->appId(),
+            'x-client-secret' => $this->secretKey(),
             'x-api-version' => (string) config('cashfree.api_version'),
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
@@ -179,7 +178,72 @@ class CashfreeService
 
     private function apiBase(): string
     {
-        return rtrim((string) config('cashfree.api_base_url'), '/');
+        return $this->isProduction() ? 'https://api.cashfree.com' : 'https://api-sandbox.cashfree.com';
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->appId() !== '' && $this->secretKey() !== '';
+    }
+
+    public function isProduction(): bool
+    {
+        $gateway = PaymentGateway::forCode(PaymentGateway::CASHFREE);
+        if ($gateway && $gateway->isConfigured()) {
+            return $gateway->isProduction();
+        }
+
+        return strtoupper((string) config('cashfree.environment')) === 'PRODUCTION';
+    }
+
+    public function environmentLabel(): string
+    {
+        return $this->isProduction() ? 'PRODUCTION' : 'SANDBOX';
+    }
+
+    /**
+     * Admin "Test connection" — keys sahi hain ya nahi.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    public function testCredentials(string $appId, string $secret, bool $production): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'x-client-id' => $appId,
+                'x-client-secret' => $secret,
+                'x-api-version' => (string) config('cashfree.api_version', '2023-08-01'),
+                'Accept' => 'application/json',
+            ])->timeout(20)->get(
+                ($production ? 'https://api.cashfree.com' : 'https://api-sandbox.cashfree.com').'/pg/orders/fnv-connection-test-'.time()
+            );
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'Cashfree se connect nahi ho paya: '.$e->getMessage()];
+        }
+
+        if (in_array($response->status(), [401, 403], true)) {
+            return ['ok' => false, 'message' => 'Cashfree ne keys reject ki ('.$response->status().'). App ID / Secret aur environment check karein.'];
+        }
+
+        if ($response->status() === 404 || $response->successful()) {
+            return ['ok' => true, 'message' => 'Cashfree keys sahi hain ✔'];
+        }
+
+        return ['ok' => false, 'message' => 'Cashfree response '.$response->status().': '.mb_substr($response->body(), 0, 200)];
+    }
+
+    public function appId(): string
+    {
+        $gateway = PaymentGateway::forCode(PaymentGateway::CASHFREE);
+
+        return trim((string) ($gateway && $gateway->isConfigured() ? $gateway->key_id : config('cashfree.app_id')));
+    }
+
+    private function secretKey(): string
+    {
+        $gateway = PaymentGateway::forCode(PaymentGateway::CASHFREE);
+
+        return trim((string) ($gateway && $gateway->isConfigured() ? $gateway->key_secret : config('cashfree.secret_key')));
     }
 
     private function httpsUrl(string $url): string

@@ -121,10 +121,10 @@
                             <label class="form-label fw-semibold">Payment</label>
                             @error('payment_method')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
                             @error('payment')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
-                            <input type="hidden" name="payment_method" value="cashfree">
+                            <input type="hidden" name="payment_method" value="{{ $paymentGateway ?? 'cashfree' }}">
                             <div class="fnv-field-box p-3">
                                 <p class="fw-bold mb-1 mb-0"><i class="bi bi-shield-lock me-1"></i> Online payment only</p>
-                                <p class="small text-muted mb-0">UPI, Card, Netbanking — <strong>Cashfree</strong> secure checkout. COD available nahi hai.</p>
+                                <p class="small text-muted mb-0">UPI, Card, Netbanking — <strong>{{ $paymentGatewayLabel ?? 'Cashfree' }}</strong> secure checkout. COD available nahi hai.</p>
                             </div>
                         </div>
                     </div>

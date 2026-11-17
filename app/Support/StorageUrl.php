@@ -6,25 +6,24 @@ class StorageUrl
 {
     public static function baseUrl(): string
     {
-        $fromConfig = config('filesystems.disks.public.url');
-        if (is_string($fromConfig) && $fromConfig !== '') {
-            return rtrim($fromConfig, '/');
-        }
-
         return self::resolveFromEnv();
     }
 
+    /**
+     * Config cache ke baad bhi sahi URL — env() runtime par use na karein.
+     */
     public static function resolveFromEnv(): string
     {
-        $configured = env('APP_STORAGE_URL');
+        $appUrl = rtrim((string) config('app.url', 'http://localhost'), '/');
+        $configured = config('filesystems.disks.public.url');
+
         if (is_string($configured) && trim($configured) !== '') {
-            $appUrl = rtrim((string) env('APP_URL', 'http://localhost'), '/');
             $configured = str_replace(['${APP_URL}', '$APP_URL'], $appUrl, trim($configured));
 
             return rtrim($configured, '/');
         }
 
-        return rtrim((string) env('APP_URL', 'http://localhost'), '/').'/storage';
+        return $appUrl.'/storage';
     }
 
     public static function forPath(?string $path): ?string

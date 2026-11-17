@@ -90,6 +90,8 @@ class CheckoutApi
                 'label' => (string) $label,
             ])->values()->all(),
             'payment_method' => $quote['payment_method'],
+            'payment_gateway' => $quote['payment_gateway'] ?? null,
+            'payment_gateway_label' => $quote['payment_gateway_label'] ?? null,
             'payment_configured' => (bool) $quote['payment_configured'],
         ];
     }
@@ -213,12 +215,16 @@ class CheckoutApi
             'payment' => [
                 'method' => $order->payment_method,
                 'method_label' => 'Online',
-                'gateway' => 'cashfree',
+                'gateway' => $order->payment_method,
+                'gateway_label' => $order->paymentGatewayLabel(),
                 'status' => $order->status,
                 'stamp' => $paymentStamp,
                 'is_paid' => $isPaid,
                 'is_cancelled' => $isCancelled,
+                'payment_reference' => $order->paymentReference(),
                 'cashfree_payment_id' => $order->cashfree_payment_id,
+                'razorpay_order_id' => $order->razorpay_order_id,
+                'razorpay_payment_id' => $order->razorpay_payment_id,
                 'paid_online' => (float) $order->total,
                 'wallet_used' => $wallet,
             ],

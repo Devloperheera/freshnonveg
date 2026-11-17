@@ -37,6 +37,10 @@ Route::post('/checkout/cashfree/webhook', [CheckoutController::class, 'cashfreeW
     ->middleware('throttle:webhook')
     ->name('checkout.cashfree.webhook');
 
+Route::post('/checkout/razorpay/webhook', [CheckoutController::class, 'razorpayWebhook'])
+    ->middleware('throttle:webhook')
+    ->name('checkout.razorpay.webhook');
+
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
@@ -69,6 +73,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkout.store');
     Route::get('/checkout/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
     Route::get('/checkout/cashfree/return', [CheckoutController::class, 'cashfreeReturn'])->name('checkout.cashfree.return');
+    Route::post('/checkout/razorpay/callback', [CheckoutController::class, 'razorpayCallback'])->middleware('throttle:checkout')->name('checkout.razorpay.callback');
+    Route::get('/checkout/razorpay/cancel/{order}', [CheckoutController::class, 'razorpayCancel'])->name('checkout.razorpay.cancel');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/orders/{order}/bill', [OrderBillController::class, 'show'])->name('orders.bill');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

@@ -63,7 +63,7 @@ class OrderConfirmationSmsService
     private function paymentLabel(Order $order): string
     {
         return match ($order->payment_method) {
-            'cashfree' => 'Online Paid',
+            'cashfree', 'razorpay' => 'Online Paid',
             default => 'Paid',
         };
     }

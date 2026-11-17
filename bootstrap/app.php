@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'checkout/cashfree/webhook',
+            'checkout/razorpay/webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

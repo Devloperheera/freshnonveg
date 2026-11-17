@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Product;
+use App\Services\CartService;
 use App\Support\AuthRedirect;
 use App\Support\SpeedCache;
 use App\Support\StorageUrl;
+use App\Support\WhatsAppOrderMessage;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -52,6 +55,25 @@ class AppServiceProvider extends ServiceProvider
                 'guestRegisterUrl' => AuthRedirect::registerRoute(),
                 'guestGoogleUrl' => AuthRedirect::googleRoute(),
             ]);
+        });
+
+        View::composer('Website.partials.whatsapp-float', function ($view): void {
+            if ($this->app->runningInConsole()) {
+                return;
+            }
+
+            $user = auth()->user();
+            $cartItems = $user ? app(CartService::class)->items($user) : collect();
+
+            $product = null;
+            if (request()->routeIs('products.show')) {
+                $routeProduct = request()->route('product');
+                if ($routeProduct instanceof Product) {
+                    $product = $routeProduct->loadMissing('weights');
+                }
+            }
+
+            $view->with('whatsAppOrderUrl', WhatsAppOrderMessage::waMeUrl($user, $product, $cartItems));
         });
 
         View::composer('Admin.Layout.sidebar', function ($view): void {

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Website;
 use App\Http\Controllers\Controller;
 use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\PaymentGateway;
 use App\Services\CashfreeService;
 use App\Services\CheckoutService;
+use App\Services\RazorpayService;
 use App\Services\OrderBillNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +22,7 @@ class CheckoutController extends Controller
 {
     public function __construct(
         private CashfreeService $cashfree,
+        private RazorpayService $razorpay,
         private CheckoutService $checkout,
     ) {}
 
@@ -41,11 +44,13 @@ class CheckoutController extends Controller
 
         if (! $quote['payment_configured']) {
             return redirect()->route('cart')->withErrors([
-                'payment' => 'Online payment (Cashfree) configure nahi hai. Checkout abhi available nahi.',
+                'payment' => 'Online payment configure nahi hai. Checkout abhi available nahi.',
             ]);
         }
 
         return view('Website.checkout', [
+            'paymentGateway' => $quote['payment_gateway'],
+            'paymentGatewayLabel' => $quote['payment_gateway_label'],
             'items' => $quote['items'],
             'subtotal' => $quote['subtotal'],
             'tax' => $quote['tax'],
@@ -65,11 +70,18 @@ class CheckoutController extends Controller
 
         try {
             $order = $this->checkout->placeOrder($user, $data);
-            $session = $this->checkout->startCashfree($order, $user);
+            $session = $this->checkout->startPayment($order, $user);
         } catch (ValidationException $e) {
             return back()->withInput()->withErrors($e->errors());
         }
 
+        if ($order->payment_method === PaymentGateway::RAZORPAY) {
+            $request->session()->put('razorpay_checkout', ['order_id' => $order->id]);
+
+            return redirect()->route('checkout.pay');
+        }
+
+        $request->session()->forget('razorpay_checkout');
         $paymentSessionId = (string) ($session['payment_session_id'] ?? '');
         if ($paymentSessionId === '') {
             return redirect()->away($this->cashfree->checkoutRedirectUrl($order->order_number, $session));
@@ -85,6 +97,34 @@ class CheckoutController extends Controller
 
     public function pay(Request $request): View|RedirectResponse
     {
+        $razorpay = $request->session()->get('razorpay_checkout');
+        if (is_array($razorpay) && ! empty($razorpay['order_id'])) {
+            $order = Order::query()
+                ->whereKey($razorpay['order_id'])
+                ->where('user_id', auth()->id())
+                ->where('payment_method', PaymentGateway::RAZORPAY)
+                ->first();
+
+            if ($order && $order->isPaid()) {
+                $request->session()->forget('razorpay_checkout');
+
+                return redirect()->route('checkout.success', $order);
+            }
+
+            if (! $order || $order->status !== 'awaiting_payment' || ! $order->razorpay_order_id) {
+                $request->session()->forget('razorpay_checkout');
+
+                return redirect()->route('checkout')->withErrors([
+                    'payment' => 'Payment session expire ho gayi. Dubara Pay dabayein.',
+                ]);
+            }
+
+            return view('Website.checkout-pay-razorpay', [
+                'order' => $order,
+                'options' => $this->razorpay->checkoutOptions($order, auth()->user()),
+            ]);
+        }
+
         $payload = $request->session()->get('cashfree_checkout');
         if (! is_array($payload) || empty($payload['payment_session_id']) || empty($payload['order_id'])) {
             return redirect()->route('checkout')->withErrors([
@@ -136,6 +176,100 @@ class CheckoutController extends Controller
         return redirect()
             ->route('checkout')
             ->withErrors(['payment' => 'Payment complete nahi hui. Dubara checkout try karein.']);
+    }
+
+    /**
+     * Razorpay checkout.js handler se yaha POST aata hai.
+     */
+    public function razorpayCallback(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'order' => ['required', 'integer'],
+            'razorpay_payment_id' => ['nullable', 'string', 'max:80'],
+            'razorpay_order_id' => ['nullable', 'string', 'max:80'],
+            'razorpay_signature' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        $order = Order::query()
+            ->whereKey($data['order'])
+            ->where('user_id', auth()->id())
+            ->where('payment_method', PaymentGateway::RAZORPAY)
+            ->firstOrFail();
+
+        $signatureOk = $this->razorpay->signatureIsValid(
+            (string) $order->razorpay_order_id,
+            (string) ($data['razorpay_payment_id'] ?? ''),
+            (string) ($data['razorpay_signature'] ?? '')
+        );
+
+        if (! $signatureOk) {
+            Log::warning('Razorpay signature mismatch', ['order' => $order->order_number]);
+        }
+
+        // Signature ho ya na ho, final faisla Razorpay API se status dekh kar.
+        if ($this->checkout->verifyPaid($order)) {
+            $request->session()->forget('razorpay_checkout');
+
+            return redirect()
+                ->route('checkout.success', $order)
+                ->with('success', 'Order place ho gaya! / Your order has been placed.');
+        }
+
+        return redirect()
+            ->route('checkout.pay')
+            ->withErrors(['payment' => 'Payment confirm nahi hui. Dubara try karein.']);
+    }
+
+    /**
+     * Customer ne Razorpay payment cancel kiya.
+     */
+    public function razorpayCancel(Request $request, Order $order): RedirectResponse
+    {
+        abort_unless((int) $order->user_id === (int) auth()->id(), 404);
+
+        $request->session()->forget('razorpay_checkout');
+
+        if ($this->checkout->verifyPaid($order)) {
+            return redirect()
+                ->route('checkout.success', $order)
+                ->with('success', 'Order place ho gaya! / Your order has been placed.');
+        }
+
+        $this->checkout->markFailedIfUnpaid($order);
+
+        return redirect()
+            ->route('checkout')
+            ->withErrors(['payment' => 'Payment cancel ho gayi. Cart dobara bhar ke try karein.']);
+    }
+
+    public function razorpayWebhook(Request $request): \Illuminate\Http\Response
+    {
+        if (! $this->razorpay->webhookIsAuthentic($request)) {
+            return response('unauthorized', 401);
+        }
+
+        $razorpayOrderId = (string) (
+            $request->input('payload.payment.entity.order_id')
+            ?? $request->input('payload.order.entity.id')
+            ?? ''
+        );
+
+        if ($razorpayOrderId === '') {
+            return response('ignored', 200);
+        }
+
+        $order = Order::query()->where('razorpay_order_id', $razorpayOrderId)->first();
+        if (! $order) {
+            return response('unknown order', 200);
+        }
+
+        try {
+            $this->razorpay->syncLocalOrderPayment($order);
+        } catch (RuntimeException $e) {
+            Log::warning('Razorpay webhook sync failed', ['order' => $order->order_number, 'error' => $e->getMessage()]);
+        }
+
+        return response('ok', 200);
     }
 
     public function cashfreeWebhook(Request $request): \Illuminate\Http\Response
@@ -213,12 +347,14 @@ class CheckoutController extends Controller
             abort(403);
         }
 
-        if ($order->payment_method === 'cashfree' && $order->status === 'awaiting_payment') {
+        $online = CheckoutService::isOnlineGateway($order->payment_method);
+
+        if ($online && $order->status === 'awaiting_payment') {
             $this->checkout->verifyPaid($order);
             $order->refresh();
         }
 
-        if ($order->payment_method === 'cashfree' && ! in_array($order->status, ['paid', 'confirmed'], true)) {
+        if ($online && ! in_array($order->status, ['paid', 'confirmed'], true)) {
             return redirect()
                 ->route('checkout')
                 ->withErrors(['payment' => 'Payment abhi pending hai.']);

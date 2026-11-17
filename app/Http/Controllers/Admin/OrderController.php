@@ -163,6 +163,8 @@ class OrderController extends Controller
                     ->orWhere('phone', 'like', $term)
                     ->orWhere('delivery_address', 'like', $term)
                     ->orWhere('cashfree_payment_id', 'like', $term)
+                    ->orWhere('razorpay_payment_id', 'like', $term)
+                    ->orWhere('razorpay_order_id', 'like', $term)
                     ->orWhereHas('user', fn (Builder $u) => $u->where('name', 'like', $term)
                         ->orWhere('phone', 'like', $term)
                         ->orWhere('email', 'like', $term))

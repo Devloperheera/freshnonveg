@@ -28,6 +28,8 @@ class Order extends Model
         'discount_amount',
         'wallet_amount',
         'cashfree_payment_id',
+        'razorpay_order_id',
+        'razorpay_payment_id',
         'order_number',
         'total',
         'status',
@@ -62,6 +64,23 @@ class Order extends Model
     public function isPaid(): bool
     {
         return in_array($this->status, self::PAID_STATUSES, true);
+    }
+
+    /**
+     * Gateway ka payment reference (Cashfree cf_order_id / Razorpay pay_xxx).
+     */
+    public function paymentReference(): ?string
+    {
+        if ($this->payment_method === 'razorpay') {
+            return $this->razorpay_payment_id ?: $this->razorpay_order_id;
+        }
+
+        return $this->cashfree_payment_id;
+    }
+
+    public function paymentGatewayLabel(): string
+    {
+        return PaymentGateway::label($this->payment_method);
     }
 
     public function isCancelled(): bool

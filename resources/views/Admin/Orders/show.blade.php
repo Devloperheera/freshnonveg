@@ -170,7 +170,8 @@
                         <div class="od-card-body">
                             <dl class="od-kv">
                                 <dt>Method</dt><dd class="text-capitalize">{{ $order->payment_method }}</dd>
-                                <dt>Payment ID</dt><dd><code>{{ $order->cashfree_payment_id ?: '—' }}</code></dd>
+                                <dt>Gateway</dt><dd>{{ $order->paymentGatewayLabel() }}</dd>
+                                <dt>Payment ID</dt><dd><code>{{ $order->paymentReference() ?: '—' }}</code></dd>
                                 <dt>Status</dt><dd>{{ $statusLabel }}</dd>
                                 <dt>Bill emailed</dt><dd>{{ $order->bill_emailed_at?->format('d M Y, h:i A') ?? 'No' }}</dd>
                                 @if($order->isCancelled())

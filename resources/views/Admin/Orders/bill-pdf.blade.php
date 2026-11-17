@@ -122,7 +122,7 @@
 
     <div class="foot">
         Payment: <strong>{{ strtoupper($order->payment_method) }}</strong>
-        @if($order->cashfree_payment_id) · Ref {{ $order->cashfree_payment_id }}@endif
+        @if($order->paymentReference()) · Ref {{ $order->paymentReference() }}@endif
         @if($cancelled)<br>Order cancelled — ₹{{ number_format($order->refundableAmount(), 2) }} FreshNonVeg wallet me refund.@endif
         <br>Sold by <strong>{{ $co['legal_name'] }}</strong> · GSTIN {{ $co['gstin'] }} · {{ $co['registration_type'] }} · {{ $co['state'] }}
         <br>This is a computer generated tax invoice. Prices inclusive of taxes as applicable.

@@ -38,7 +38,7 @@
                         @if($order->pincode)
                             <p class="mb-1"><strong>Pincode:</strong> {{ $order->pincode }} · {{ $order->city }}, {{ $order->state }}</p>
                         @endif
-                        <p class="mb-1"><strong>Payment:</strong> Online (Cashfree) — {{ $order->status === 'paid' ? 'Paid' : ucfirst(str_replace('_', ' ', $order->status)) }}</p>
+                        <p class="mb-1"><strong>Payment:</strong> Online ({{ $order->paymentGatewayLabel() }}) — {{ $order->status === 'paid' ? 'Paid' : ucfirst(str_replace('_', ' ', $order->status)) }}</p>
                         <p class="mb-1"><strong>Phone:</strong> {{ $order->phone }}</p>
                         <p class="mb-0"><strong>Address:</strong> {{ $order->delivery_address }}</p>
                     </div>

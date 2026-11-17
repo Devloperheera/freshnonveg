@@ -185,8 +185,15 @@
             </div>
             <span class="menu-badge blue">{{ $sidebarCounts['delivery_slots'] ?? 0 }}</span>
         </a>
-        <a href="{{ route('admin.header-content.index') }}"
-            class="menu-item {{ request()->routeIs('admin.header-content.index*') ? 'active' : '' }}">
+        <a href="{{ route('admin.payment-gateways.index') }}"
+            class="menu-item {{ request()->routeIs('admin.payment-gateways.*') ? 'active' : '' }}">
+            <div class="menu-item-content">
+                <i class="bi bi-credit-card"></i>
+                <span>Payment Gateways</span>
+            </div>
+        </a>
+        <a href="{{ route('admin.settings.index') }}"
+            class="menu-item {{ request()->routeIs('admin.settings.*', 'admin.header-content.index') ? 'active' : '' }}">
             <div class="menu-item-content">
                 <i class="bi bi-shield-check"></i>
                 <span>Settings</span>

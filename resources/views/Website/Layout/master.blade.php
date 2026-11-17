@@ -55,6 +55,7 @@
     @include('Website.Layout.header')
     @yield('content')
     @include('Website.Layout.footer')
+    @include('Website.partials.whatsapp-float')
     @include('Website.Layout.mobile-bottom-nav')
     @include('Website.Layout.js')
     @yield('custom_js')

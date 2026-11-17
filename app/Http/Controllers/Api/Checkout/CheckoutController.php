@@ -48,7 +48,7 @@ class CheckoutController extends Controller
         if (! $quote['payment_configured']) {
             return response()->json([
                 'success' => false,
-                'message' => 'Online payment (Cashfree) configure nahi hai. Checkout abhi available nahi.',
+                'message' => 'Online payment configure nahi hai. Checkout abhi available nahi.',
             ], 422);
         }
 
@@ -87,12 +87,12 @@ class CheckoutController extends Controller
         $data = $request->validate($this->checkout->placeRules());
 
         $order = $this->checkout->placeOrder($user, $data);
-        $session = $this->checkout->startCashfree($order, $user);
-        $order->load(['items.product.images', 'user']);
+        $session = $this->checkout->startPayment($order, $user);
+        $order->refresh()->load(['items.product.images', 'user']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment start ho gaya. Cashfree se pay karein.',
+            'message' => 'Payment start ho gaya. '.$order->paymentGatewayLabel().' se pay karein.',
             'data' => [
                 'order' => UserDashboardApi::orderDetail($order, $user),
                 'payment' => $this->checkout->paymentPayload($order, $session),
