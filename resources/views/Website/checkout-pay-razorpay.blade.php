@@ -69,7 +69,7 @@
             return;
         }
         if (errorEl) errorEl.classList.add('d-none');
-        if (statusEl) statusEl.textContent = 'Razorpay secure checkout khul raha hai…';
+        if (statusEl) statusEl.textContent = @json($order->paymentGatewayLabel().' secure payment page khul rahi hai…');
 
         var rzp = new Razorpay(Object.assign({}, options, {
             handler: submitResult,
