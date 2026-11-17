@@ -84,7 +84,12 @@ class CheckoutController extends Controller
         $request->session()->forget('razorpay_checkout');
         $paymentSessionId = (string) ($session['payment_session_id'] ?? '');
         if ($paymentSessionId === '') {
-            return redirect()->away($this->cashfree->checkoutRedirectUrl($order->order_number, $session));
+            $link = trim((string) ($session['payment_link'] ?? ''));
+            if ($link !== '' && str_starts_with($link, 'https://')) {
+                return redirect()->away($link);
+            }
+
+            return redirect()->away($this->cashfree->hostedPayUrl($order));
         }
 
         $request->session()->put('cashfree_checkout', [

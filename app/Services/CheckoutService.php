@@ -349,6 +349,11 @@ class CheckoutService
             $session = $gateway === PaymentGateway::RAZORPAY
                 ? $this->razorpay->createOrder($order, $user)
                 : $this->cashfree->createPaymentSession($order, $user, $forMobileApp);
+
+            if ($gateway === PaymentGateway::CASHFREE) {
+                $this->cashfree->persistPaymentSession($order, $session);
+            }
+
             $user->cartItems()->delete();
 
             return $session;
@@ -479,7 +484,7 @@ class CheckoutService
             ], $this->mobileIntegrationHints(PaymentGateway::RAZORPAY, $forMobileApp, null));
         }
 
-        $checkoutUrl = $this->cashfree->checkoutRedirectUrl($order->order_number, $session);
+        $checkoutUrl = $this->cashfree->checkoutRedirectUrl($order, $session, $forMobileApp);
 
         return array_merge([
             'gateway' => PaymentGateway::CASHFREE,
@@ -511,7 +516,7 @@ class CheckoutService
             ],
             'mobile_hints' => $preferHosted ? [
                 'title' => 'Cashfree hosted checkout use karein',
-                'message' => 'Debug APK / Play Store ke bina install par Cashfree native SDK fail ho sakta hai (installer_package_not_approved). payment.checkout_url ko Chrome Custom Tabs ya in-app WebView me kholo; payment ke baad POST /checkout/verify call karein.',
+                'message' => 'payment.checkout_url (freshnonveg.com/pay/cashfree/...) browser ya WebView me kholo — ye Cashfree JS SDK use karta hai. Payment ke baad POST /checkout/verify call karein.',
             ] : null,
         ];
     }

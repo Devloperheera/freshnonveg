@@ -28,6 +28,7 @@ class Order extends Model
         'discount_amount',
         'wallet_amount',
         'cashfree_payment_id',
+        'cashfree_payment_session_id',
         'razorpay_order_id',
         'razorpay_payment_id',
         'order_number',

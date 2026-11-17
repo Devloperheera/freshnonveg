@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use RuntimeException;
 
 class CashfreeService
@@ -57,19 +58,45 @@ class CashfreeService
     }
 
     /**
+     * App / API ke liye browser/WebView me khulne wala URL (Hamari site + Cashfree JS SDK).
+     * Cashfree ka direct `/pg/view/sessions/checkout` URL 404 deta hai — use mat karo.
+     */
+    public function hostedPayUrl(Order $order, bool $forMobileApp = false): string
+    {
+        $params = ['order_number' => $order->order_number];
+        if ($forMobileApp) {
+            $params['app'] = '1';
+        }
+
+        return URL::temporarySignedRoute(
+            'cashfree.hosted.show',
+            now()->addHours(6),
+            $params,
+            absolute: true
+        );
+    }
+
+    /**
      * @param  array<string, mixed>  $session
      */
-    public function checkoutRedirectUrl(string $orderId, array $session): string
+    public function checkoutRedirectUrl(Order $order, array $session, bool $forMobileApp = false): string
     {
         $paymentLink = trim((string) ($session['payment_link'] ?? ''));
         if ($paymentLink !== '' && str_starts_with($paymentLink, 'https://')) {
             return $paymentLink;
         }
 
-        $paymentSessionId = (string) ($session['payment_session_id'] ?? '');
-        $base = $this->isProduction() ? 'https://payments.cashfree.com' : 'https://sandbox.cashfree.com';
+        return $this->hostedPayUrl($order, $forMobileApp);
+    }
 
-        return $base.'/pg/view/sessions/checkout?payment_session_id='.rawurlencode($paymentSessionId);
+    public function persistPaymentSession(Order $order, array $session): void
+    {
+        $sessionId = trim((string) ($session['payment_session_id'] ?? ''));
+        if ($sessionId === '') {
+            return;
+        }
+
+        $order->update(['cashfree_payment_session_id' => $sessionId]);
     }
 
     public function checkoutMode(): string

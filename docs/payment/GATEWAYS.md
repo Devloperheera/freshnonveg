@@ -104,7 +104,8 @@ Agar error aaye: *"NOT_AVAILABLE is not a trusted source … installer_package_n
 
 1. Har API checkout request par header bhejo: `X-Client: mobile-app` (ya `X-App-Platform: android`)
 2. Response me `payment.integration.preferred === 'hosted_checkout_url'` ho to **native SDK mat chalao**
-3. `payment.checkout_url` (ya `payment_link`) ko **Chrome Custom Tabs** / **in-app WebView** (`url_launcher` / `webview_flutter`) se kholo
+3. `payment.checkout_url` ab **`https://freshnonveg.com/pay/cashfree/{order_number}?...signature`** hai (signed). Ye page website jaisa Cashfree JS SDK use karta hai — **Cashfree ka direct `payments.cashfree.com/pg/view/...` URL mat kholo (404).**
+4. Is URL ko **Chrome Custom Tabs** / **in-app WebView** se kholo
 4. Payment ke baad user ko app me laao → `POST /checkout/verify` with `order_number`
 5. Dubara URL chahiye ho to: `GET /api/v1/checkout/orders/{id}/payment`
 
@@ -168,6 +169,93 @@ void openCashfree(Map payment, Map order) {
 
 **Note:** Live (PRODUCTION) me Cashfree dashboard par app ka package name / website domain whitelist hona chahiye,
 warna `403` aata hai.
+
+---
+
+## React Native (recommended — March 2026)
+
+**Base URL:** `https://freshnonveg.com/api/v1`  
+**Auth:** `Authorization: Bearer {sanctum_token}` · `Accept: application/json`
+
+### Zaroori headers (har checkout API call)
+
+```javascript
+headers: {
+  Accept: 'application/json',
+  Authorization: `Bearer ${token}`,
+  'X-Client': 'mobile-app',
+  'X-App-Platform': Platform.OS, // android | ios
+}
+```
+
+### Cashfree — native SDK mat use karo (APK / sideload)
+
+`installer_package_not_approved` → **`payment.checkout_url`** WebView ya browser me kholo.
+
+```bash
+npm install react-native-inappbrowser-reborn
+# ya: npm install react-native-webview react-native-linking
+```
+
+```javascript
+import { Linking, Platform } from 'react-native';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
+
+async function openCashfreeHosted(payment, orderNumber) {
+  const url = payment.checkout_url || payment.payment_link;
+  if (!url) throw new Error('checkout_url missing');
+
+  if (await InAppBrowser.isAvailable()) {
+    await InAppBrowser.open(url, {
+      dismissButtonStyle: 'close',
+      showTitle: true,
+      enableUrlBarHiding: true,
+    });
+  } else {
+    await Linking.openURL(url);
+  }
+
+  await verifyPayment(orderNumber);
+}
+
+async function placeOrderAndPay(checkoutBody) {
+  const res = await api.post('/checkout', checkoutBody, { headers: mobileHeaders() });
+  const { order, payment } = res.data.data;
+
+  if (payment.gateway === 'cashfree') {
+  if (
+    payment.integration?.use_native_sdk === false ||
+    payment.integration?.preferred === 'hosted_checkout_url'
+  ) {
+      await openCashfreeHosted(payment, order.order_number);
+      return;
+    }
+  }
+
+  if (payment.gateway === 'razorpay') {
+    // react-native-razorpay — payment.checkout_options use karo
+    openRazorpay(payment, order);
+  }
+}
+```
+
+### Verify + retry
+
+```javascript
+async function verifyPayment(orderNumber, extra = {}) {
+  const res = await api.post('/checkout/verify', { order_number: orderNumber, ...extra });
+  if (res.data?.success) navigation.navigate('OrderSuccess', { id: res.data.data.order.id });
+  else navigation.navigate('Cart');
+}
+
+// payment dubara khulwana ho
+const retry = await api.get(`/checkout/orders/${orderId}/payment`, { headers: mobileHeaders() });
+```
+
+Deep link (payment return page): `freshnonveg://payment/return?order_number=...&status=paid`  
+Server `.env`: `APP_MOBILE_PAYMENT_DEEP_LINK` (optional).
+
+Poora API flow: [API.md](./API.md)
 
 ---
 

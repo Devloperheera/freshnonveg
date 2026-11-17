@@ -315,14 +315,14 @@ Response = Step 2 jaisa quote object. Yahan galat coupon **silently ignore** hot
       "payment_session_id": "session_xxxxxxxxxxxxxxxx",
       "cf_order_id": "4567891234",
       "payment_link": null,
-      "checkout_url": "https://payments.cashfree.com/pg/view/sessions/checkout?payment_session_id=session_xxxx"
+      "checkout_url": "https://freshnonveg.com/pay/cashfree/FNV-20261117-AB12CD?expires=...&signature=..."
     }
   }
 }
 ```
 
-👉 `payment_session_id` + `order_id` + `environment` se Cashfree SDK kholo. ([GATEWAYS.md → Cashfree](./GATEWAYS.md#cashfree))
-SDK na chale to fallback: `checkout_url` WebView / browser me.
+👉 **App:** seedha `checkout_url` browser / WebView me kholo (hamara hosted pay page + Cashfree JS).  
+👉 Native Cashfree SDK optional; direct Cashfree `payments.cashfree.com/pg/view/...` URL **use mat karo** (404).
 
 ### Order place hone ke baad
 

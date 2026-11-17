@@ -37,6 +37,9 @@ Route::get('/app/payment/return/{order_number}/{status}', [\App\Http\Controllers
     ->where('status', 'paid|failed|pending')
     ->name('app.payment.return');
 
+Route::get('/pay/cashfree/{order_number}', [\App\Http\Controllers\Website\CashfreeHostedPayController::class, 'show'])
+    ->name('cashfree.hosted.show');
+
 Route::post('/checkout/cashfree/webhook', [CheckoutController::class, 'cashfreeWebhook'])
     ->middleware('throttle:webhook')
     ->name('checkout.cashfree.webhook');
