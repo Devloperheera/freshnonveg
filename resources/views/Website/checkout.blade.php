@@ -117,14 +117,20 @@
                             <textarea name="order_notes" id="orderNotes" rows="2" class="form-control" maxlength="1000"
                                       placeholder="Gate code, call before delivery, etc.">{{ old('order_notes') }}</textarea>
                         </div>
+                        @php
+                            $gatewayCode = $paymentGateway ?? \App\Models\PaymentGateway::activeCode();
+                            $gatewayLabel = $paymentGatewayLabel ?? \App\Models\PaymentGateway::label($gatewayCode);
+                        @endphp
                         <div class="mb-0">
                             <label class="form-label fw-semibold">Payment</label>
                             @error('payment_method')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
                             @error('payment')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
-                            <input type="hidden" name="payment_method" value="{{ $paymentGateway ?? 'cashfree' }}">
-                            <div class="fnv-field-box p-3">
-                                <p class="fw-bold mb-1 mb-0"><i class="bi bi-shield-lock me-1"></i> Online payment only</p>
-                                <p class="small text-muted mb-0">UPI, Card, Netbanking — <strong>{{ $paymentGatewayLabel ?? 'Cashfree' }}</strong> secure checkout. COD available nahi hai.</p>
+                            <input type="hidden" name="payment_method" value="{{ $gatewayCode }}">
+                            <div class="fnv-field-box p-3 border border-success border-opacity-25 bg-success bg-opacity-10">
+                                <p class="fw-bold mb-1 mb-0 text-success-emphasis">
+                                    <i class="bi bi-shield-check me-1"></i> Secure online payment — {{ $gatewayLabel }}
+                                </p>
+                                <p class="small text-muted mb-0">{{ \App\Models\PaymentGateway::checkoutCustomerMessage($gatewayCode) }}</p>
                             </div>
                         </div>
                     </div>

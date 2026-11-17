@@ -86,6 +86,17 @@ class PaymentGateway extends Model
         };
     }
 
+    /**
+     * Checkout page par customer ko dikhane wala short message (gateway ke hisaab se).
+     */
+    public static function checkoutCustomerMessage(?string $code = null): string
+    {
+        $code = $code ?: self::activeCode();
+        $label = self::label($code);
+
+        return "Place Order dabane par {$label} ki secure payment page khulegi — UPI, debit/credit card aur net banking se pay kar sakte hain.";
+    }
+
     public function isConfigured(): bool
     {
         return filled($this->key_id) && filled($this->key_secret);

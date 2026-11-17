@@ -9,7 +9,7 @@
             <h1 class="h4 mb-2">Payment page khul rahi hai</h1>
             <p class="mb-1">Order <strong>{{ $order->order_number }}</strong></p>
             <p class="mb-3">Amount <strong>₹{{ number_format((float) $order->total, 2) }}</strong></p>
-            <p class="small text-muted mb-3" id="cashfreePayStatus">Cashfree secure checkout start ho raha hai…</p>
+            <p class="small text-muted mb-3" id="cashfreePayStatus">{{ $order->paymentGatewayLabel() }} secure payment page khul rahi hai…</p>
             <button type="button" class="btn btn-fun btn-red" id="cashfreePayBtn">Pay now</button>
             <p class="small text-danger mt-3 mb-0 d-none" id="cashfreePayError"></p>
         </div>
@@ -41,7 +41,7 @@
             return;
         }
         var cashfree = Cashfree({ mode: mode });
-        if (statusEl) statusEl.textContent = 'Cashfree secure checkout start ho raha hai…';
+        if (statusEl) statusEl.textContent = @json($order->paymentGatewayLabel().' secure payment page khul rahi hai…');
         cashfree.checkout({
             paymentSessionId: sessionId,
             redirectTarget: '_self'

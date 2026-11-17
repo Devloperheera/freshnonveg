@@ -14,7 +14,7 @@
                 <p class="small text-danger mb-3">{{ $errors->first() }}</p>
             @endif
 
-            <p class="small text-muted mb-3" id="rzpPayStatus">Razorpay secure checkout start ho raha hai…</p>
+            <p class="small text-muted mb-3" id="rzpPayStatus">{{ $order->paymentGatewayLabel() }} secure payment page khul rahi hai…</p>
             <div class="d-flex justify-content-center gap-2 flex-wrap">
                 <button type="button" class="btn btn-fun btn-red" id="rzpPayBtn">Pay now</button>
                 <a href="{{ route('checkout.razorpay.cancel', $order) }}" class="btn btn-outline-secondary">Cancel payment</a>
