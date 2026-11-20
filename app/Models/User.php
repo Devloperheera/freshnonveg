@@ -101,6 +101,11 @@ class User extends Authenticatable
         return $this->hasMany(ProductReview::class);
     }
 
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(UserAddress::class)->orderByDesc('is_default')->latest('updated_at');
+    }
+
     public function walletTransactions(): HasMany
     {
         return $this->hasMany(WalletTransaction::class);

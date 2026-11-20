@@ -44,6 +44,7 @@
             <div class="ud-order-foot">
                 <strong>₹{{ number_format((float) $order->total, 2) }}</strong>
                 <div class="d-flex flex-wrap gap-2">
+                    @include('Website.Dashboard.partials.reorder-button', ['order' => $order])
                     <a href="{{ route('dashboard.orders.show', $order) }}" class="ud-btn ud-btn-sm"><i class="bi bi-eye"></i> View order</a>
                     @if($isPaid || $order->isCancelled())
                         <a href="{{ route('orders.bill', $order) }}" class="ud-btn ud-btn-ghost ud-btn-sm"><i class="bi bi-receipt"></i> Food bill</a>

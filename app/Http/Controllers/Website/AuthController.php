@@ -204,6 +204,11 @@ class AuthController extends Controller
         $this->authService->webLogin($user);
         $request->session()->regenerate();
 
+        // Password nahi hai → ek baar password banwao (OTP kam use ho). Skip bhi kar sakte hain.
+        if (! filled($user->password)) {
+            return redirect()->route('password.setup')->with('success', 'OTP se login ho gaya! Ab ek password bana lijiye.');
+        }
+
         return redirect()->intended(route('home'))->with('success', 'OTP se login successful!');
     }
 

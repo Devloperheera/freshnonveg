@@ -57,6 +57,7 @@ class CheckoutController extends Controller
             'success' => true,
             'data' => [
                 'customer' => CheckoutApi::customer($user),
+                'saved_addresses' => $user->addresses()->get()->map(fn ($a) => $a->toApi())->values()->all(),
                 ...CheckoutApi::quote($quote),
             ],
         ]);

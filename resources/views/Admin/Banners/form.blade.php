@@ -64,6 +64,34 @@
                     @error('image')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     <div class="form-text">Max 5 MB · JPG, PNG, WebP, etc.</div>
                 </div>
+                @php
+                    $chosen = array_map('intval', old('product_ids', $selectedProductIds));
+                    $byId = $productOptions->keyBy('id');
+                    // Chune hue pehle (saved order me), baaki baad me
+                    $ordered = collect($chosen)->map(fn ($id) => $byId->get($id))->filter()
+                        ->concat($productOptions->reject(fn ($p) => in_array($p->id, $chosen, true)));
+                @endphp
+                <div class="col-12 mb-3">
+                    <label for="bannerProducts" class="form-label">
+                        Banner products <span class="text-muted small">(optional)</span>
+                    </label>
+                    <select name="product_ids[]" id="bannerProducts" multiple
+                            class="form-select @error('product_ids') is-invalid @enderror @error('product_ids.*') is-invalid @enderror"
+                            data-placeholder="Products search karke chunein…">
+                        @foreach($ordered as $p)
+                            <option value="{{ $p->id }}" @selected(in_array($p->id, $chosen, true))>
+                                {{ $p->name }}{{ $p->category ? ' · '.$p->category->name : '' }}{{ (int) $p->status === 1 ? '' : ' (inactive)' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('product_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    @error('product_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">
+                        Banner click karne par ye products dikhenge (jis order me chunenge, usi order me).
+                        <strong>1 product</strong> → seedha product page · <strong>kai products</strong> → products list page ·
+                        <strong>koi nahi</strong> → banner click nahi hoga. Inactive products website par nahi dikhte.
+                    </div>
+                </div>
                 @if($banner->exists && $banner->image)
                     <div class="col-12 mb-3">
                         <label class="form-label d-block">Current image</label>
@@ -89,6 +117,25 @@
 @endsection
 
 @section('custom_js')
+<script>
+(function ($) {
+    if (!$ || !$.fn.select2) return;
+    var $sel = $('#bannerProducts');
+    $sel.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: $sel.data('placeholder'),
+        closeOnSelect: false,
+    });
+    // Jis order me chuna, wahi order save ho: chuna hua option list ke end me bhejo
+    $sel.on('select2:select', function (e) {
+        var $opt = $(e.params.data.element);
+        $opt.detach();
+        $sel.append($opt);
+        $sel.trigger('change');
+    });
+})(window.jQuery);
+</script>
 <script>
 document.getElementById('image')?.addEventListener('change', function (e) {
     var file = e.target.files && e.target.files[0];

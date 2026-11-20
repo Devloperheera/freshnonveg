@@ -47,14 +47,60 @@
         Store, delivery aur checkout related options yahan se manage karein.
     </p>
 
+    @if(session('success'))
+        <div class="alert alert-success py-2">{{ session('success') }}</div>
+    @endif
+
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-lg-8">
+            <div class="settings-card">
+                <h3><i class="bi bi-truck me-1"></i> Delivery charges</h3>
+                <p>Checkout, cart aur mobile app — sab jagah yahi rules lagenge. Pehle se place hue orders par asar nahi.</p>
+
+                <form method="POST" action="{{ route('admin.settings.delivery.update') }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small" for="freeDeliveryMinOrder">Free delivery — minimum order (₹)</label>
+                            <input type="number" step="0.01" min="0" name="free_delivery_min_order" id="freeDeliveryMinOrder"
+                                   class="form-control @error('free_delivery_min_order') is-invalid @enderror"
+                                   value="{{ old('free_delivery_min_order', $freeDeliveryMinOrder + 0) }}" required>
+                            @error('free_delivery_min_order')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Is amount ya usse upar → delivery free. 0 = hamesha free.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small" for="deliveryCharge">Delivery charge (₹)</label>
+                            <input type="number" step="0.01" min="0" name="delivery_charge" id="deliveryCharge"
+                                   class="form-control @error('delivery_charge') is-invalid @enderror"
+                                   value="{{ old('delivery_charge', $deliveryCharge + 0) }}" required>
+                            @error('delivery_charge')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Minimum se kam order par lagega.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small" for="instantDeliveryFee">Instant delivery extra (₹)</label>
+                            <input type="number" step="0.01" min="0" name="instant_delivery_fee" id="instantDeliveryFee"
+                                   class="form-control @error('instant_delivery_fee') is-invalid @enderror"
+                                   value="{{ old('instant_delivery_fee', $instantDeliveryFee + 0) }}" required>
+                            @error('instant_delivery_fee')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Har instant order par extra — order value kuch bhi ho.</div>
+                        </div>
+                    </div>
+
+                    <div class="small mt-3 p-2 rounded" style="background:#f8fafc">
+                        <strong>Abhi ka rule:</strong>
+                        ₹{{ number_format($freeDeliveryMinOrder, 0) }}+ order → delivery <strong>Free</strong>;
+                        usse kam → <strong>₹{{ number_format($deliveryCharge, 0) }}</strong>.
+                        Instant delivery → upar se <strong>+₹{{ number_format($instantDeliveryFee, 0) }}</strong>.
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm mt-3"><i class="bi bi-save me-1"></i> Save</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-4">
             <div class="settings-kv"><strong>Site URL:</strong> <span>{{ $appUrl }}</span></div>
-            <div class="settings-kv"><strong>Instant delivery fee:</strong> <span>₹{{ number_format($instantDeliveryFee, 0) }}</span></div>
             <div class="settings-kv"><strong>WhatsApp number:</strong> <span>{{ $whatsappNumber !== '' ? $whatsappNumber : '—' }}</span></div>
-            <p class="small text-muted mb-0 mt-2">
-                Fee badalne ke liye server <code>.env</code> me <code>INSTANT_DELIVERY_FEE</code> set karein, phir <code>php artisan config:cache</code>.
-            </p>
         </div>
     </div>
 

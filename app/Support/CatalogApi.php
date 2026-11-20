@@ -17,10 +17,20 @@ class CatalogApi
      */
     public static function banner(Banner $banner): array
     {
+        $productIds = $banner->activeProductIds();
+
         return [
             'id' => $banner->id,
             'name' => $banner->name,
             'image' => $banner->imageUrl(),
+            // App: none → click nahi · product → product detail (product_ids[0]) · products → GET /products?banner={id}
+            'link_type' => match (count($productIds)) {
+                0 => 'none',
+                1 => 'product',
+                default => 'products',
+            },
+            'product_ids' => $productIds,
+            'products_count' => count($productIds),
         ];
     }
 

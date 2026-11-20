@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\CartService;
 use App\Services\CustomerAccountService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,6 +76,30 @@ class DashboardController extends Controller
         return redirect()
             ->route('dashboard.orders.show', $order)
             ->with('success', 'Order cancel ho gaya. ₹'.number_format($result['refund'], 2).' aapke wallet me refund kar diye gaye.');
+    }
+
+    /** Reorder / pay again: purane order ke items cart me daal ke checkout par bhejo. */
+    public function reorder(Order $order, CartService $cart): RedirectResponse
+    {
+        $user = $this->user();
+        abort_unless((int) $order->user_id === (int) $user->id, 404);
+
+        $result = $cart->reorder($user, $order);
+
+        if ($result['added'] === 0) {
+            return back()->withErrors([
+                'reorder' => 'Is order ke products abhi available nahi hain. Naye products cart me add karein.',
+            ]);
+        }
+
+        $message = $order->status === 'payment_failed'
+            ? 'Items cart me wapas aa gaye. Slot chun ke dobara pay karein.'
+            : 'Items cart me add ho gaye. Checkout karein.';
+        if ($result['skipped'] !== []) {
+            $message .= ' Ye available nahi: '.implode(', ', $result['skipped']).'.';
+        }
+
+        return redirect()->route('checkout')->with('success', $message);
     }
 
     public function wallet(): View

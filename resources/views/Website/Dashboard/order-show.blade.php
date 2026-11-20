@@ -34,6 +34,9 @@
         @include('Website.Dashboard.partials.order-status', ['status' => $order->status])
         <div class="ud-order-total">₹{{ number_format((float) $order->total, 2) }}</div>
         <div class="ud-row-sub">Paid online{{ (float) $order->wallet_amount > 0 ? ' + ₹'.number_format((float) $order->wallet_amount, 2).' wallet' : '' }}</div>
+        <div class="mt-2">
+            @include('Website.Dashboard.partials.reorder-button', ['order' => $order])
+        </div>
     </div>
 </div>
 

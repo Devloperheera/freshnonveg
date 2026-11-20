@@ -136,9 +136,24 @@ Same shape as register (without `201`): `success`, `message`, `token`, `user`.
   "success": true,
   "message": "OTP login successful.",
   "token": "2|...",
-  "user": { }
+  "needs_password_setup": true,
+  "user": { "has_password": false }
 }
 ```
+
+### Password banwao (OTP kam use ho)
+
+`needs_password_setup: true` → token save karke **"Password banayein"** screen dikhao (password + confirm, **"Abhi nahi"** skip button).
+
+**`PUT /auth/profile/password`** (Bearer token) — password nahi hai to `current_password` ki zarurat nahi:
+
+```json
+{ "password": "Fresh@12345", "password_confirmation": "Fresh@12345" }
+```
+
+Min **8** characters. Uske baad user `POST /login` (`login` + `password`) se login kar sakta hai.
+
+Profile screen: `user.has_password` → `false` ho to "Set password", `true` ho to "Change password" (tab `current_password` bhi bhejo). Galat current password → `422` `errors.current_password`.
 
 ---
 

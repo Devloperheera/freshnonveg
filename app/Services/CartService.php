@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CartItem;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductWeight;
 use App\Models\User;
@@ -79,6 +80,44 @@ class CartService
             'quantity' => $quantity,
             'unit_price' => $weight->price,
         ])->load(['product.images']);
+    }
+
+    /**
+     * Purane order ke items dobara cart me daalo (current price par).
+     * Inactive product / hata hua weight skip hota hai.
+     *
+     * @return array{added: int, skipped: list<string>}
+     */
+    public function reorder(User $user, Order $order): array
+    {
+        $order->loadMissing('items');
+        $added = 0;
+        $skipped = [];
+
+        foreach ($order->items as $line) {
+            $product = $line->product_id ? Product::query()->find($line->product_id) : null;
+            $weight = $product
+                ? ProductWeight::query()
+                    ->where('product_id', $product->id)
+                    ->where('weight_label', $line->weight_label)
+                    ->first()
+                : null;
+
+            if (! $product || ! $product->isActive() || ! $weight) {
+                $skipped[] = trim($line->product_name.($line->weight_label ? ' ('.$line->weight_label.')' : ''));
+
+                continue;
+            }
+
+            $this->addToCart($user, $product, [
+                'product_weight_id' => $weight->id,
+                'quantity' => max(1, min(99, (int) $line->quantity)),
+                'preference_note' => $line->preference_note,
+            ]);
+            $added++;
+        }
+
+        return ['added' => $added, 'skipped' => $skipped];
     }
 
     public function updateQuantity(User $user, CartItem $cartItem, int $quantity): CartItem

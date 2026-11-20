@@ -56,12 +56,19 @@ Same product + weight + note dubara → quantity badhti hai (max 99). Inactive p
     "items": [],
     "items_count": 2,
     "subtotal": 540.00,
-    "delivery_fee": 0,
+    "shipping": 100,
+    "shipping_label": "₹100.00",
+    "delivery_schedule_type": "scheduled",
+    "delivery_fee": 100,
     "instant_delivery_fee": 100,
+    "instant_fee_applied": 0,
+    "delivery_charge": 100,
+    "free_delivery_min_order": 1100,
+    "amount_for_free_delivery": 560,
     "discount": 0,
     "wallet_balance": 250.00,
-    "payable": 540.00,
-    "total": 540.00,
+    "payable": 640.00,
+    "total": 640.00,
     "payment_method": "razorpay",
     "payment_gateway": "razorpay",
     "payment_gateway_label": "Razorpay",
@@ -74,6 +81,49 @@ Same product + weight + note dubara → quantity badhti hai (max 99). Inactive p
 ```
 
 `pending_paid_order` != `null` → pichla order (app band ho gaya tha) actually **paid** ho chuka hai — seedha success screen dikhao.
+
+### Delivery charges (admin se dynamic)
+
+Values admin panel (`Settings → Delivery charges`) se aati hain — **app me hardcode mat karo**, hamesha response se lo.
+
+| Field | Matlab |
+|-------|--------|
+| `shipping` | Normal delivery charge. `subtotal >= free_delivery_min_order` → `0`, warna `delivery_charge` |
+| `shipping_label` | `"Free"` ya `"₹100.00"` — seedha UI me dikhao |
+| `instant_fee_applied` | Instant chuna to `instant_delivery_fee`, warna `0` (har order value par lagta hai) |
+| `delivery_fee` | **Kul delivery** = `shipping` + `instant_fee_applied` (yahi total me judta hai) |
+| `amount_for_free_delivery` | Itna aur add karo to delivery free — "₹560 aur add karein" banner ke liye (`0` = already free) |
+| `free_delivery_min_order`, `delivery_charge`, `instant_delivery_fee` | Current admin settings |
+
+Example (default: ₹1100+ free, warna ₹100, instant +₹100):
+
+| Subtotal | Scheduled | Instant |
+|----------|-----------|---------|
+| ₹500 | ₹100 | ₹200 |
+| ₹1100 | Free | ₹100 |
+| ₹1500 | Free | ₹100 |
+
+Free limit **subtotal** (coupon se pehle) par check hoti hai. Instant/scheduled badalne par `POST /checkout/quote` se naya total lo.
+
+---
+
+### Time slots — aaj ki date (India time)
+
+`time_slots[]` me har slot ke saath `start_time`, `end_time` aur `available_today` aata hai, aur upar `today` (IST date, `Asia/Kolkata`).
+
+```json
+"today": "2026-11-20",
+"timezone": "Asia/Kolkata",
+"time_slots": [
+  { "value": "09:00-10:00", "label": "09:00 AM – 10:00 AM", "start_time": "09:00", "end_time": "10:00", "available_today": false },
+  { "value": "15:00-16:00", "label": "03:00 PM – 04:00 PM", "start_time": "15:00", "end_time": "16:00", "available_today": true }
+]
+```
+
+- User ne **`today`** wali date chuni → sirf `available_today: true` wale slots dikhao. Aage ki date → saare slots.
+- Date picker ka minimum = `today` (phone ki date nahi).
+- Server bhi check karta hai: beeta hua slot bheja to `422` → `errors.delivery_time`: `Ye time slot nikal chuka hai. Aage ka slot ya kal ki date chunein.`
+- Screen der tak khuli rahe to "Place order" se pehle `GET /checkout` dobara call karke slots refresh kar lo.
 
 ---
 
@@ -523,3 +573,100 @@ Not paid → `404` `Invoice abhi available nahi hai. Pehle payment complete kare
 - Response me `payment_session_id`, `checkout_url` keys pehle jaisi hain → Cashfree wala purana app code chalta rahega
   **jab tak admin Cashfree active rakhe**.
 - Razorpay active hone par purane app me `payment_session_id = null` aayega → isliye **naya app version** (gateway switch wala) release karna hoga.
+
+---
+
+## Reorder / Pay again
+
+**`POST /dashboard/orders/{order}/reorder`** — Auth (body nahi chahiye)
+
+Purane order ke saare items **current price** par cart me daal deta hai. Uske baad normal flow: `GET /checkout` → slot/address → `POST /checkout` → payment.
+
+- `payment_failed` order → button text **"Pay again"**
+- `paid` / `confirmed` / `cancelled` → **"Reorder"**
+- `awaiting_payment` → button mat dikhao
+
+Purana failed order wahi rehta hai — naya order banta hai (slot, coupon, wallet dobara chunna hota hai).
+
+**`200`**
+
+```json
+{
+  "success": true,
+  "message": "Items cart me wapas aa gaye. Slot chun ke dobara pay karein.",
+  "data": {
+    "added": 1,
+    "skipped": ["Mutton Keema (500 g)"],
+    "cart": { "items": [], "subtotal": 899.00, "total": 999.00, "cart_count": 1 }
+  }
+}
+```
+
+`skipped` = jo products ab inactive / weight hat gaya — user ko bata do. `cart` = `GET /cart` jaisa object.
+
+**`422`** — koi bhi product available nahi: `Is order ke products abhi available nahi hain.`
+**`404`** — order is user ka nahi.
+
+---
+
+## Saved addresses (multi address)
+
+### Checkout par
+
+`GET /checkout` ke `data.saved_addresses[]` me user ke saved address aate hain (default pehle):
+
+```json
+"saved_addresses": [
+  {
+    "id": 3, "label": "Home", "phone": "9818936520",
+    "pincode": "201301", "state": "Uttar Pradesh", "city": "Noida", "post_office": null,
+    "address": "Flat 12, Sector 62",
+    "full_address": "Flat 12, Sector 62, Noida, Uttar Pradesh, 201301",
+    "is_default": true
+  }
+]
+```
+
+App UI: saved address cards + **"Naya address"**. Default wala pehle se chuna ho.
+
+- **Saved chuna** → uske fields `POST /checkout` me bhejo + `address_id`. `GET /checkout/pincode/{pincode}` se zone check zarur karo.
+- **Naya address** → fields bhar ke bhejo + `"save_address": true` aur `"address_label": "Home" | "Work" | "Other"` → order ke baad address-book me save ho jata hai (same pincode + address dobara save nahi hota).
+
+```json
+{
+  "address_id": 3,
+  "phone": "9818936520", "pincode": "201301", "state": "Uttar Pradesh", "city": "Noida",
+  "delivery_address": "Flat 12, Sector 62",
+  "delivery_schedule_type": "instant"
+}
+```
+
+`address_id` kisi aur user ka → `422`.
+
+### Manage (Profile → My addresses)
+
+| Method | Path | Body |
+|--------|------|------|
+| GET | `/dashboard/addresses` | — |
+| POST | `/dashboard/addresses` | `label`, `phone`*, `pincode`* (6 digit), `state`*, `city`*, `address`*, `post_office`, `is_default` |
+| PUT | `/dashboard/addresses/{id}` | same as POST |
+| DELETE | `/dashboard/addresses/{id}` | — |
+| PATCH | `/dashboard/addresses/{id}/default` | — |
+
+Har response:
+
+```json
+{
+  "success": true,
+  "message": "Address save ho gaya.",
+  "data": {
+    "address": { },
+    "addresses": [ ],
+    "max_addresses": 10
+  }
+}
+```
+
+- Pehla address apne aap **default** banta hai. Default delete karo to sabse recent wala default ban jata hai.
+- Max **10** address → 11th par `422` `errors.address`.
+- Dusre user ka address → `404`.

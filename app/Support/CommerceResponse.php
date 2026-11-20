@@ -20,7 +20,8 @@ class CommerceResponse
         $items = $user->cartItems()->latest('id')->get();
         $subtotal = $items->sum(fn ($item) => $item->lineTotal());
         $tax = 0.0;
-        $total = $subtotal + $tax;
+        $shipping = CheckoutDelivery::shippingFor((float) $subtotal);
+        $total = $subtotal + $shipping + $tax;
 
         return response()->json([
             'success' => true,
@@ -28,6 +29,7 @@ class CommerceResponse
             ...self::counts($user),
             'subtotal' => round((float) $subtotal, 2),
             'tax' => $tax,
+            'shipping' => $shipping,
             'total' => round((float) $total, 2),
             'items' => $items->map(fn ($item) => [
                 'id' => $item->id,

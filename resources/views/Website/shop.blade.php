@@ -6,7 +6,13 @@
 <section class="py-5" id="shop">
     <div class="container">
         <div class="text-center mb-4">
-            @if($activeCategory ?? null)
+            @if($activeBanner ?? null)
+                <h1 class="t">{{ $activeBanner->name }}</h1>
+                <p class="sub mb-0">{{ $products->total() }} product{{ $products->total() === 1 ? '' : 's' }}</p>
+            @elseif(request()->filled('banner'))
+                <h1 class="t">Offer <u>khatam</u></h1>
+                <p class="sub mb-0">Ye offer abhi available nahi hai.</p>
+            @elseif($activeCategory ?? null)
                 <h1 class="t">{{ $activeCategory->name }} <u>Products</u></h1>
                 <p class="sub mb-0">Is category mein {{ $products->total() }} product{{ $products->total() === 1 ? '' : 's' }}</p>
             @elseif($activeTag ?? null)
@@ -19,7 +25,7 @@
                 <h1 class="t">All <u>Products</u></h1>
                 <p class="sub mb-0">Fresh non-veg — {{ $products->total() }} items</p>
             @endif
-            @if(($activeCategory ?? null) || ($activeTag ?? null) || request()->filled('q'))
+            @if(($activeCategory ?? null) || ($activeTag ?? null) || request()->filled('q') || request()->filled('banner'))
                 <a href="{{ route('shop.index') }}" class="btn btn-outline-dark btn-sm mt-2">Saare products dikhao</a>
             @endif
         </div>

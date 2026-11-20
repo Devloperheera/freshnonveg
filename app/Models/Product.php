@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Support\StorageUrl;
 use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
@@ -45,6 +45,11 @@ class Product extends Model
     public function banner(): BelongsTo
     {
         return $this->belongsTo(Banner::class);
+    }
+
+    public function banners(): BelongsToMany
+    {
+        return $this->belongsToMany(Banner::class)->withPivot('sort_order')->withTimestamps();
     }
 
     public function weights(): HasMany

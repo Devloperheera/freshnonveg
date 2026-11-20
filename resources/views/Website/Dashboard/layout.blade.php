@@ -8,6 +8,7 @@
         ['route' => 'dashboard', 'match' => 'dashboard', 'icon' => 'bi-grid-1x2', 'label' => 'Overview'],
         ['route' => 'dashboard.orders', 'match' => 'dashboard.orders', 'icon' => 'bi-bag-check', 'label' => 'My orders'],
         ['route' => 'dashboard.wallet', 'match' => 'dashboard.wallet', 'icon' => 'bi-wallet2', 'label' => 'Wallet'],
+        ['route' => 'dashboard.addresses', 'match' => 'dashboard.addresses*', 'icon' => 'bi-geo-alt', 'label' => 'My addresses'],
         ['route' => 'dashboard.ratings', 'match' => 'dashboard.ratings*', 'icon' => 'bi-star', 'label' => 'My ratings'],
         ['route' => 'dashboard.complaints', 'match' => 'dashboard.complaints*', 'icon' => 'bi-chat-left-dots', 'label' => 'Complaints'],
         ['route' => 'profile', 'match' => 'profile', 'icon' => 'bi-person-gear', 'label' => 'Profile settings'],

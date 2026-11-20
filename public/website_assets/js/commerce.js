@@ -96,6 +96,12 @@
         if (summaryTax && data.tax != null) {
             summaryTax.textContent = formatInr(data.tax);
         }
+        var summaryShipping = document.querySelector('[data-cart-shipping]');
+        if (summaryShipping && data.shipping != null) {
+            var ship = Number(data.shipping);
+            summaryShipping.textContent = ship > 0 ? formatInr(ship) : 'Free';
+            summaryShipping.className = ship > 0 ? '' : 'text-success fw-semibold';
+        }
         if (summaryTotal && data.total != null) {
             summaryTotal.textContent = formatInr(data.total);
         }

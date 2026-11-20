@@ -31,6 +31,7 @@
                         <th>#</th>
                         <th>Image</th>
                         <th>Banner Name</th>
+                        <th>Products</th>
                         <th>Status</th>
                         <th>Updated</th>
                         <th>Action</th>
@@ -46,6 +47,13 @@
                             </td>
                             <td class="fw-semibold">{{ $banner->name }}</td>
                             <td>
+                                @if($banner->products_count > 0)
+                                    <span class="badge bg-success">{{ $banner->products_count }} product{{ $banner->products_count === 1 ? '' : 's' }}</span>
+                                @else
+                                    <span class="small text-muted">— (click nahi)</span>
+                                @endif
+                            </td>
+                            <td>
                                 @include('Admin.partials.status-toggle', ['action' => route('admin.banners.toggle-status', $banner), 'active' => $banner->isActive()])
                             </td>
                             <td><span class="small">{{ $banner->updated_at?->format('d M Y, H:i') }}</span></td>
@@ -55,7 +63,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No banners yet. Add your first banner.</td>
+                            <td colspan="7" class="text-center py-4 text-muted">No banners yet. Add your first banner.</td>
                         </tr>
                     @endforelse
                 </tbody>

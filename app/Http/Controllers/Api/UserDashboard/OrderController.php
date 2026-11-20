@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Api\UserDashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\CartService;
+use App\Services\CheckoutService;
 use App\Services\CustomerAccountService;
 use App\Services\OrderBillNotifier;
+use App\Support\CheckoutApi;
+use App\Support\CommerceResponse;
 use App\Support\UserDashboardApi;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -85,6 +89,41 @@ class OrderController extends Controller
             'success' => true,
             'message' => 'Order cancel ho gaya. ₹'.number_format($result['refund'], 2).' aapke wallet me refund kar diye gaye.',
             'data' => UserDashboardApi::orderDetail($order, $user->fresh()),
+        ]);
+    }
+
+    /** Reorder / pay again — items cart me, phir app checkout flow chalaye. */
+    public function reorder(Request $request, Order $order, CartService $cart, CheckoutService $checkout): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless((int) $order->user_id === (int) $user->id, 404);
+
+        $result = $cart->reorder($user, $order);
+
+        if ($result['added'] === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Is order ke products abhi available nahi hain.',
+                'data' => ['added' => 0, 'skipped' => $result['skipped']],
+            ], 422);
+        }
+
+        $message = $order->status === 'payment_failed'
+            ? 'Items cart me wapas aa gaye. Slot chun ke dobara pay karein.'
+            : 'Items cart me add ho gaye. Checkout karein.';
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => [
+                'added' => $result['added'],
+                'skipped' => $result['skipped'],
+                'cart' => [
+                    ...CheckoutApi::quote($checkout->quote($user)),
+                    ...CommerceResponse::counts($user),
+                ],
+            ],
         ]);
     }
 

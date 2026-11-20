@@ -101,9 +101,14 @@
                                 <span data-cart-subtotal>₹{{ number_format($subtotal, 2) }}</span>
                             </div>
                             <div class="cart-summary-line">
-                                <span>Shipping</span>
-                                <span class="text-success fw-semibold">Free</span>
+                                <span>Delivery charge</span>
+                                <span data-cart-shipping class="{{ $shipping > 0 ? '' : 'text-success fw-semibold' }}">{{ $shipping > 0 ? '₹'.number_format($shipping, 2) : 'Free' }}</span>
                             </div>
+                            @if($freeDeliveryMinOrder > 0)
+                                <div class="small text-muted mb-2" data-cart-free-hint>
+                                    ₹{{ number_format($freeDeliveryMinOrder, 0) }}+ order par delivery free.
+                                </div>
+                            @endif
                             <div class="cart-summary-line">
                                 <span>Tax</span>
                                 <span data-cart-tax>₹{{ number_format($tax, 2) }}</span>

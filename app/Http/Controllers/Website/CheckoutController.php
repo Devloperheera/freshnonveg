@@ -8,15 +8,17 @@ use App\Models\Order;
 use App\Models\PaymentGateway;
 use App\Services\CashfreeService;
 use App\Services\CheckoutService;
-use App\Services\RazorpayService;
 use App\Services\OrderBillNotifier;
+use App\Services\RazorpayService;
+use App\Support\CheckoutDelivery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use RuntimeException;
-use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
 {
@@ -56,10 +58,18 @@ class CheckoutController extends Controller
             'tax' => $quote['tax'],
             'deliveryFee' => $quote['delivery_fee'],
             'instantDeliveryFee' => $quote['instant_delivery_fee'],
+            'shipping' => $quote['shipping'],
+            'deliveryCharge' => $quote['delivery_charge'],
+            'freeDeliveryMinOrder' => $quote['free_delivery_min_order'],
+            'amountForFreeDelivery' => $quote['amount_for_free_delivery'],
             'total' => $quote['subtotal'] + $quote['tax'] + $quote['delivery_fee'],
             'user' => $user,
             'timeSlots' => $quote['time_slots'],
+            'timeSlotDetails' => $quote['time_slot_details'],
+            'todayIst' => $quote['today'],
+            'nowIstMinutes' => (int) CheckoutDelivery::now()->hour * 60 + (int) CheckoutDelivery::now()->minute,
             'walletBalance' => $quote['wallet_balance'],
+            'savedAddresses' => $user->addresses()->get(),
         ]);
     }
 
@@ -267,7 +277,7 @@ class CheckoutController extends Controller
             ->withErrors(['payment' => 'Payment cancel ho gayi. Cart dobara bhar ke try karein.']);
     }
 
-    public function razorpayWebhook(Request $request): \Illuminate\Http\Response
+    public function razorpayWebhook(Request $request): Response
     {
         if (! $this->razorpay->webhookIsAuthentic($request)) {
             return response('unauthorized', 401);
@@ -297,7 +307,7 @@ class CheckoutController extends Controller
         return response('ok', 200);
     }
 
-    public function cashfreeWebhook(Request $request): \Illuminate\Http\Response
+    public function cashfreeWebhook(Request $request): Response
     {
         if (! $this->cashfree->webhookIsAuthentic($request)) {
             return response('unauthorized', 401);

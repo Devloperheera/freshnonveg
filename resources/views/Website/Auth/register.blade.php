@@ -29,7 +29,7 @@
             <div class="mb-compact">
                 <label class="form-label">पासवर्ड (Password)</label>
                 <div class="pass-wrap">
-                    <input type="password" name="password" id="regPassword" class="form-control @error('password') is-invalid @enderror" placeholder="Kam se kam 6 akshar" required>
+                    <input type="password" name="password" id="regPassword" class="form-control @error('password') is-invalid @enderror" placeholder="Kam se kam 8 akshar" minlength="8" required>
                     <button type="button" class="pass-toggle" data-toggle-pass="regPassword" data-toggle-icon="regEyeIcon" aria-label="Show password"><i class="bi bi-eye" id="regEyeIcon"></i></button>
                 </div>
                 @error('password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror

@@ -88,6 +88,8 @@ body{padding-top:var(--site-header-h,58px)}
 .hero .owl-loaded .owl-stage-outer{height:auto!important}
 .hero-slide{display:block;background:#111827;line-height:0}
 .hero-slide img{width:100%;height:auto;display:block;vertical-align:middle}
+.hero-slide-link{display:block;cursor:pointer}
+.hero-slide-link:focus-visible{outline:3px solid var(--yel,#ffd60a);outline-offset:-3px}
 /* owl custom look — dots only, no prev/next arrows */
 #hero .owl-nav{display:none!important}
 #hero .owl-dots{position:absolute;bottom:14px;left:0;right:0;text-align:center;line-height:normal}
@@ -136,7 +138,7 @@ h1.t u,h2.t u{text-decoration:none;box-decoration-break:clone;-webkit-box-decora
 .price{font-size:1.6rem;font-weight:800;color:var(--red)}
 .tag{position:absolute;top:-10px;right:10px;background:var(--red);color:#fff;border-radius:20px;padding:0 12px;font-weight:700;font-size:.8rem;transform:rotate(6deg)}
 .num{width:70px;height:70px;border-radius:50%;background:var(--yel);border:3px solid var(--dark);font-size:2rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:4px 4px 0 var(--dark);animation:pulse 2.5s infinite}
-.band{background:var(--dark);color:var(--yel);font-size:clamp(1.6rem,5vw,3rem);font-weight:800;overflow:hidden;white-space:nowrap;padding:12px 0;transform:rotate(-1.5deg);margin:30px -10px}
+.band{background:var(--dark);color:var(--yel);font-size:.85rem;line-height:1.2;font-weight:800;overflow:hidden;white-space:nowrap;padding:5px 0;transform:none;margin:8px 0;letter-spacing:.03em}
 .band div{display:inline-block;animation:marq2 18s linear infinite}@keyframes marq2{to{transform:translateX(-50%)}}
 .stats{background:linear-gradient(120deg,var(--red),#ff9a3c);color:#fff;border-block:4px solid var(--dark)}.stats h3{font-size:3rem;font-weight:800;margin:0}
 .pill{display:inline-block;background:#fff;border:3px solid var(--dark);border-radius:40px;padding:6px 20px;margin:6px;font-weight:700;box-shadow:3px 3px 0 var(--dark);transition:.2s}.pill:hover{background:var(--yel);transform:rotate(-3deg) scale(1.08)}
@@ -492,3 +494,28 @@ a.ud-stat-gold:hover{color:#fff}
 .ud-detail-grid strong{font-weight:700;color:#111827;font-size:.92rem}
 .ud-bill-card{position:sticky;top:96px;background:#fbf7f2}
 @media (max-width:991.98px){.ud-bill-card{position:static}}
+
+/* ---- Checkout: saved addresses ---- */
+.checkout-addr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.checkout-addr-card{position:relative;display:flex;flex-direction:column;gap:4px;border:var(--fnv-input-border);border-radius:var(--fnv-input-radius);padding:12px 14px;cursor:pointer;box-shadow:var(--fnv-input-shadow);background:#fff;transition:border-color .2s,background .2s,box-shadow .15s}
+.checkout-addr-card input{position:absolute;opacity:0;pointer-events:none}
+.checkout-addr-card.active,.checkout-addr-card:has(input:checked){border-color:var(--dark);background:var(--yel);box-shadow:3px 3px 0 var(--dark)}
+.checkout-addr-card:focus-within{outline:2px solid var(--dark);outline-offset:2px}
+.checkout-addr-card__head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.checkout-addr-card__label{font-weight:800;display:inline-flex;align-items:center;gap:6px}
+.checkout-addr-card__badge{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;background:#1e8e3e;color:#fff;border-radius:999px;padding:2px 8px}
+.checkout-addr-card__line{font-size:.85rem;color:#334155;line-height:1.35;overflow-wrap:anywhere}
+.checkout-addr-card__phone{font-size:.78rem;color:#64748b}
+.checkout-addr-card--new{border-style:dashed;justify-content:center}
+.checkout-save-addr{background:#f8fafc;border-radius:12px;padding:10px 12px}
+.checkout-addr-tag{position:relative;cursor:pointer}
+.checkout-addr-tag input{position:absolute;opacity:0;pointer-events:none}
+.checkout-addr-tag span{display:inline-block;padding:4px 14px;border:1px solid #cbd5e1;border-radius:999px;font-size:.82rem;font-weight:700;background:#fff}
+.checkout-addr-tag input:checked+span{background:var(--dark);color:#fff;border-color:var(--dark)}
+.checkout-addr-tag input:focus-visible+span{outline:2px solid var(--dark);outline-offset:2px}
+
+/* ---- Dashboard: addresses ---- */
+.ud-addr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.ud-addr{border:1px solid #e2e8f0;border-radius:14px;padding:14px;background:#fff;display:flex;flex-direction:column;gap:6px}
+.ud-addr.is-default{border-color:var(--ud-green);box-shadow:0 0 0 1px var(--ud-green) inset}
+.ud-addr-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}

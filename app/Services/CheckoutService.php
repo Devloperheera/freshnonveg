@@ -8,6 +8,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PaymentGateway;
 use App\Models\User;
+use App\Models\UserAddress;
+use App\Support\ApiClientContext;
 use App\Support\CheckoutDelivery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -82,18 +84,32 @@ class CheckoutService
             'post_office' => ['nullable', 'string', 'max:150'],
             'delivery_address' => ['required', 'string', 'max:2000'],
             'delivery_schedule_type' => ['required', 'in:instant,scheduled'],
-            'delivery_date' => ['nullable', 'required_if:delivery_schedule_type,scheduled', 'date', 'after_or_equal:today'],
+            'delivery_date' => ['nullable', 'required_if:delivery_schedule_type,scheduled', 'date_format:Y-m-d', 'after_or_equal:'.CheckoutDelivery::todayDate()],
             'delivery_time' => [
                 'nullable',
                 'required_if:delivery_schedule_type,scheduled',
                 'string',
                 'max:50',
                 Rule::in(array_keys(CheckoutDelivery::timeSlots())),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (request()->input('delivery_schedule_type') !== CheckoutDelivery::TYPE_SCHEDULED || ! is_string($value)) {
+                        return;
+                    }
+                    $slot = CheckoutDelivery::slotDetails()[$value] ?? null;
+                    $date = (string) request()->input('delivery_date', '');
+                    if ($slot && ! CheckoutDelivery::slotAvailableOn($slot['start'], $date)) {
+                        $fail('Ye time slot nikal chuka hai. Aage ka slot ya kal ki date chunein.');
+                    }
+                },
             ],
             'payment_method' => ['nullable', 'in:cashfree,razorpay,online'],
             'coupon_code' => ['nullable', 'string', 'max:40'],
             'use_wallet' => ['nullable', 'boolean'],
             'order_notes' => ['nullable', 'string', 'max:1000'],
+            // Saved address chuna (sirf info / last-used ke liye — fields upar wale hi use hote hain)
+            'address_id' => ['nullable', 'integer', Rule::exists('user_addresses', 'id')->where('user_id', (int) request()->user()?->id)],
+            'save_address' => ['nullable', 'boolean'],
+            'address_label' => ['nullable', 'string', 'max:30'],
         ];
     }
 
@@ -142,9 +158,10 @@ class CheckoutService
             $schedule = 'scheduled';
         }
 
-        $deliveryFee = CheckoutDelivery::feeForType($schedule);
+        $delivery = CheckoutDelivery::breakdown($schedule, $subtotal);
+        $deliveryFee = $delivery['total'];
         $tax = 0.0;
-        $shipping = 0.0;
+        $shipping = $delivery['shipping'];
 
         [$coupon, $discount] = $this->resolveCoupon($options['coupon_code'] ?? null, $subtotal, false);
 
@@ -163,10 +180,14 @@ class CheckoutService
             'subtotal' => $subtotal,
             'tax' => $tax,
             'shipping' => $shipping,
-            'shipping_label' => $shipping > 0 ? $shipping : 'Free',
+            'shipping_label' => $shipping > 0 ? '₹'.number_format($shipping, 2) : 'Free',
             'delivery_schedule_type' => $schedule,
             'delivery_fee' => $deliveryFee,
             'instant_delivery_fee' => CheckoutDelivery::instantFee(),
+            'instant_fee_applied' => $delivery['instant'],
+            'delivery_charge' => CheckoutDelivery::deliveryCharge(),
+            'free_delivery_min_order' => CheckoutDelivery::freeDeliveryMinOrder(),
+            'amount_for_free_delivery' => $delivery['amount_for_free_delivery'],
             'discount' => $discount,
             'coupon' => $coupon,
             'wallet_balance' => $walletBalance,
@@ -177,6 +198,8 @@ class CheckoutService
             'total' => $total,
             'minimum_online_pay' => 1.0,
             'time_slots' => CheckoutDelivery::timeSlots(),
+            'time_slot_details' => CheckoutDelivery::slotDetails(),
+            'today' => CheckoutDelivery::todayDate(),
             'payment_method' => $this->activeGateway() ?? PaymentGateway::CASHFREE,
             'payment_gateway' => $this->activeGateway(),
             'payment_gateway_label' => PaymentGateway::label($this->activeGateway()),
@@ -248,7 +271,7 @@ class CheckoutService
         $data['payment_method'] = $gateway;
 
         $subtotal = $items->sum(fn (CartItem $item) => $item->lineTotal());
-        $deliveryFee = CheckoutDelivery::feeForType($data['delivery_schedule_type']);
+        $deliveryFee = CheckoutDelivery::feeForType($data['delivery_schedule_type'], (float) $subtotal);
         [$coupon, $discount] = $this->resolveCoupon($data['coupon_code'] ?? null, $subtotal);
         $tax = 0.0;
         $total = round($subtotal - $discount + $tax + $deliveryFee, 2);
@@ -262,7 +285,7 @@ class CheckoutService
         $fullAddress = CheckoutDelivery::composeFullAddress($data);
         $useWallet = (bool) ($data['use_wallet'] ?? false);
 
-        return DB::transaction(function () use ($user, $items, $data, $subtotal, $deliveryFee, $discount, $fullAddress, $coupon, $useWallet) {
+        $order = DB::transaction(function () use ($user, $items, $data, $subtotal, $deliveryFee, $discount, $fullAddress, $coupon, $useWallet) {
             if ($coupon) {
                 $locked = Coupon::query()->whereKey($coupon->id)->lockForUpdate()->first();
                 $reason = $locked?->rejectionReason($subtotal);
@@ -333,6 +356,15 @@ class CheckoutService
 
             return $order;
         });
+
+        // "Is address ko save karein" — naya address address-book me (duplicate nahi banta)
+        if (! empty($data['save_address']) && empty($data['address_id'])) {
+            app(UserAddressService::class)->rememberFromCheckout($user, $data);
+        } elseif (! empty($data['address_id'])) {
+            UserAddress::query()->where('user_id', $user->id)->whereKey((int) $data['address_id'])->first()?->touch();
+        }
+
+        return $order;
     }
 
     /**
@@ -343,7 +375,7 @@ class CheckoutService
     public function startPayment(Order $order, User $user, ?Request $request = null): array
     {
         $gateway = (string) $order->payment_method;
-        $forMobileApp = \App\Support\ApiClientContext::isMobileApp($request);
+        $forMobileApp = ApiClientContext::isMobileApp($request);
 
         try {
             $session = $gateway === PaymentGateway::RAZORPAY

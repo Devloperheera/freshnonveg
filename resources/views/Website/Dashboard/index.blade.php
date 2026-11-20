@@ -4,6 +4,15 @@
 @section('dashboard_title', 'Namaste, '.\Illuminate\Support\Str::of($user->name)->before(' '))
 
 @section('dashboard')
+@unless(filled($user->password))
+    <div class="ud-card mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-left:4px solid #F57C00">
+        <div>
+            <strong><i class="bi bi-shield-lock me-1"></i> Password bana lijiye</strong>
+            <div class="ud-row-sub">Agli baar mobile/email + password se seedha login — OTP ka wait nahi.</div>
+        </div>
+        <a href="{{ route('password.setup') }}" class="ud-btn ud-btn-sm">Password banayein</a>
+    </div>
+@endunless
 <div class="ud-stats">
     <div class="ud-stat">
         <span class="ud-stat-icon"><i class="bi bi-bag-check"></i></span>
@@ -52,6 +61,9 @@
                 <div class="text-end">
                     <div class="ud-row-amount">₹{{ number_format((float) $order->total, 2) }}</div>
                     @include('Website.Dashboard.partials.order-status', ['status' => $order->status])
+                    <div class="mt-2">
+                        @include('Website.Dashboard.partials.reorder-button', ['order' => $order])
+                    </div>
                 </div>
             </div>
         @empty

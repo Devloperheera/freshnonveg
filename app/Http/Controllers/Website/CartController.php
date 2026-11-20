@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CartItem;
 use App\Services\CartService;
 use App\Services\CheckoutService;
+use App\Support\CheckoutDelivery;
 use App\Support\CommerceResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,11 +35,12 @@ class CartController extends Controller
             ->get();
 
         $subtotal = $items->sum(fn (CartItem $item) => $item->lineTotal());
-        $shipping = 0.0;
+        $shipping = CheckoutDelivery::shippingFor((float) $subtotal);
         $tax = 0.0;
         $total = $subtotal + $shipping + $tax;
+        $freeDeliveryMinOrder = CheckoutDelivery::freeDeliveryMinOrder();
 
-        return view('Website.cart', compact('items', 'subtotal', 'shipping', 'tax', 'total'));
+        return view('Website.cart', compact('items', 'subtotal', 'shipping', 'tax', 'total', 'freeDeliveryMinOrder'));
     }
 
     public function update(Request $request, CartItem $cartItem): JsonResponse|RedirectResponse

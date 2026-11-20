@@ -111,7 +111,7 @@
                         <th>Image</th>
                         <th>Product</th>
                         <th>Category</th>
-                        <th>Banner</th>
+                        <th>Banners</th>
                         <th>Weights / Price</th>
                         <th>Tags</th>
                         <th>Featured</th>
@@ -133,7 +133,7 @@
                             </td>
                             <td class="fw-semibold">{{ $product->name }}</td>
                             <td>{{ $product->category?->name ?? '—' }}</td>
-                            <td>{{ $product->banner?->name ?? '—' }}</td>
+                            <td class="small">{{ $product->banners->pluck('name')->join(', ') ?: '—' }}</td>
                             <td class="small">
                                 @foreach($product->weights as $w)
                                     <div>{{ $w->weight_label }} — ₹{{ number_format((float) $w->price, 2) }}</div>

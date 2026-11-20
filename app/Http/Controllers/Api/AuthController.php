@@ -129,6 +129,8 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'OTP login successful.',
             'token' => $token,
+            // true → app "Password banayein" screen dikhaye (skip allowed) → PUT /auth/profile/password
+            'needs_password_setup' => ! filled($user->password),
             'user' => $this->userPayload($user),
         ]);
     }
@@ -416,6 +418,7 @@ class AuthController extends Controller
             'address' => $user->address,
             'status' => $user->status,
             'registration_source' => $user->registration_source,
+            'has_password' => filled($user->password),
             'login_count' => $user->login_count,
             'last_login_at' => $user->last_login_at,
             'web_last_login_at' => $user->web_last_login_at,

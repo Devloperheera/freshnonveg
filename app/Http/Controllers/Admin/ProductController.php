@@ -12,6 +12,8 @@ use App\Support\UploadRules;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -37,7 +39,7 @@ class ProductController extends Controller
         ];
 
         $query = Product::query()
-            ->with(['category', 'banner', 'tags', 'weights', 'images']);
+            ->with(['category', 'banners:id,name', 'tags', 'weights', 'images']);
 
         $this->applyFilters($query, $filters);
 
@@ -62,7 +64,7 @@ class ProductController extends Controller
 
     public function show(Product $product): View
     {
-        $product->load(['category', 'banner', 'tags', 'weights', 'images']);
+        $product->load(['category', 'banners:id,name', 'tags', 'weights', 'images']);
 
         return view('Admin.Products.show', compact('product'));
     }
@@ -71,9 +73,10 @@ class ProductController extends Controller
     {
         $data = $this->validatedProduct($request);
 
-        $product = Product::query()->create(collect($data)->except(['tag_ids', 'weights', 'image_sort', 'new_images'])->all());
+        $product = Product::query()->create(collect($data)->except(['tag_ids', 'weights', 'image_sort', 'new_images', 'banner_ids'])->all());
         $this->syncWeights($product, $data['weights']);
         $this->syncTags($product, $data['tag_ids'] ?? []);
+        $this->syncBanners($product, $data['banner_ids'] ?? []);
         $this->syncImages($product, $request);
         $this->syncVideo($product, $request);
 
@@ -84,9 +87,10 @@ class ProductController extends Controller
     {
         $data = $this->validatedProduct($request);
 
-        $product->update(collect($data)->except(['tag_ids', 'weights', 'image_sort', 'new_images'])->all());
+        $product->update(collect($data)->except(['tag_ids', 'weights', 'image_sort', 'new_images', 'banner_ids'])->all());
         $this->syncWeights($product, $data['weights']);
         $this->syncTags($product, $data['tag_ids'] ?? []);
+        $this->syncBanners($product, $data['banner_ids'] ?? []);
         $this->syncImages($product, $request);
         $this->syncVideo($product, $request);
 
@@ -114,7 +118,8 @@ class ProductController extends Controller
     {
         $data = $request->validate([
             'category_id' => ['nullable', 'exists:categories,id'],
-            'banner_id' => ['nullable', 'exists:banners,id'],
+            'banner_ids' => ['nullable', 'array'],
+            'banner_ids.*' => ['integer', 'exists:banners,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_featured' => ['nullable', 'boolean'],
@@ -137,9 +142,36 @@ class ProductController extends Controller
 
         $data['is_featured'] = $request->boolean('is_featured');
         $data['category_id'] = $data['category_id'] ?: null;
-        $data['banner_id'] = $data['banner_id'] ?: null;
+        $data['banner_ids'] = array_values(array_unique(array_map('intval', $data['banner_ids'] ?? [])));
+        // Purana single column — pehla banner (admin list / purane code ke liye)
+        $data['banner_id'] = $data['banner_ids'][0] ?? null;
 
         return $data;
+    }
+
+    /**
+     * Product ko banners par lagao. Naye banner par product list ke end me judta hai;
+     * banner ka existing order (Banner form) nahi bigadta.
+     *
+     * @param  list<int>  $bannerIds
+     */
+    private function syncBanners(Product $product, array $bannerIds): void
+    {
+        $current = $product->banners()->pluck('banners.id')->map(fn ($id) => (int) $id)->all();
+
+        $removed = array_diff($current, $bannerIds);
+        if ($removed !== []) {
+            $product->banners()->detach($removed);
+        }
+
+        foreach (array_diff($bannerIds, $current) as $bannerId) {
+            $next = (int) DB::table('banner_product')->where('banner_id', $bannerId)->max('sort_order') + 1;
+            $product->banners()->attach($bannerId, ['sort_order' => $next]);
+        }
+
+        if ($removed !== [] || array_diff($bannerIds, $current) !== []) {
+            Banner::query()->whereIn('id', array_merge($removed, $bannerIds))->get()->each->touch();
+        }
     }
 
     private function syncVideo(Product $product, Request $request): void
@@ -165,7 +197,7 @@ class ProductController extends Controller
         /** @var list<string> $sortKeys */
         $sortKeys = $request->input('image_sort', []);
 
-        /** @var array<int, \Illuminate\Http\UploadedFile> $newFiles */
+        /** @var array<int, UploadedFile> $newFiles */
         $newFiles = $request->file('new_images', []) ?? [];
 
         if ($sortKeys === [] && $product->images()->exists() && $newFiles === []) {

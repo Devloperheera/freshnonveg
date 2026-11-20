@@ -1,18 +1,22 @@
 <?php
 
+use App\Http\Controllers\Website\AddressController;
+use App\Http\Controllers\Website\AddressSuggestController;
+use App\Http\Controllers\Website\AppPaymentReturnController;
 use App\Http\Controllers\Website\AuthController;
 use App\Http\Controllers\Website\CartController;
-use App\Http\Controllers\Website\CheckoutController;
+use App\Http\Controllers\Website\CashfreeHostedPayController;
 use App\Http\Controllers\Website\CatalogSearchController;
+use App\Http\Controllers\Website\CheckoutController;
 use App\Http\Controllers\Website\DashboardController;
 use App\Http\Controllers\Website\DeleteAccountController;
 use App\Http\Controllers\Website\HomeController;
-use App\Http\Controllers\Website\AddressSuggestController;
+use App\Http\Controllers\Website\LegalPageController;
+use App\Http\Controllers\Website\OrderBillController;
+use App\Http\Controllers\Website\PasswordSetupController;
 use App\Http\Controllers\Website\PincodeController;
 use App\Http\Controllers\Website\ProductCartController;
 use App\Http\Controllers\Website\ProductController;
-use App\Http\Controllers\Website\LegalPageController;
-use App\Http\Controllers\Website\OrderBillController;
 use App\Http\Controllers\Website\ProfileController;
 use App\Http\Controllers\Website\ShopController;
 use App\Http\Controllers\Website\WishlistController;
@@ -33,11 +37,11 @@ Route::get('/catalog/search', CatalogSearchController::class)->middleware('throt
 
 Route::get('/delete', [DeleteAccountController::class, 'show'])->name('account.delete');
 
-Route::get('/app/payment/return/{order_number}/{status}', [\App\Http\Controllers\Website\AppPaymentReturnController::class, 'show'])
+Route::get('/app/payment/return/{order_number}/{status}', [AppPaymentReturnController::class, 'show'])
     ->where('status', 'paid|failed|pending')
     ->name('app.payment.return');
 
-Route::get('/pay/cashfree/{order_number}', [\App\Http\Controllers\Website\CashfreeHostedPayController::class, 'show'])
+Route::get('/pay/cashfree/{order_number}', [CashfreeHostedPayController::class, 'show'])
     ->name('cashfree.hosted.show');
 
 Route::post('/checkout/cashfree/webhook', [CheckoutController::class, 'cashfreeWebhook'])
@@ -88,6 +92,12 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard/orders', [DashboardController::class, 'orders'])->name('dashboard.orders');
     Route::get('/dashboard/orders/{order}', [DashboardController::class, 'showOrder'])->name('dashboard.orders.show');
     Route::post('/dashboard/orders/{order}/cancel', [DashboardController::class, 'cancelOrder'])->name('dashboard.orders.cancel');
+    Route::post('/dashboard/orders/{order}/reorder', [DashboardController::class, 'reorder'])->name('dashboard.orders.reorder');
+    Route::get('/dashboard/addresses', [AddressController::class, 'index'])->name('dashboard.addresses');
+    Route::post('/dashboard/addresses', [AddressController::class, 'store'])->name('dashboard.addresses.store');
+    Route::put('/dashboard/addresses/{address}', [AddressController::class, 'update'])->name('dashboard.addresses.update');
+    Route::delete('/dashboard/addresses/{address}', [AddressController::class, 'destroy'])->name('dashboard.addresses.destroy');
+    Route::patch('/dashboard/addresses/{address}/default', [AddressController::class, 'makeDefault'])->name('dashboard.addresses.default');
     Route::get('/dashboard/wallet', [DashboardController::class, 'wallet'])->name('dashboard.wallet');
     Route::get('/dashboard/complaints', [DashboardController::class, 'complaints'])->name('dashboard.complaints');
     Route::post('/dashboard/complaints', [DashboardController::class, 'storeComplaint'])->name('dashboard.complaints.store');
@@ -96,8 +106,11 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::get('/set-password', [PasswordSetupController::class, 'show'])->name('password.setup');
+    Route::post('/set-password', [PasswordSetupController::class, 'store'])->middleware('throttle:login')->name('password.setup.store');
+    Route::post('/set-password/skip', [PasswordSetupController::class, 'skip'])->name('password.setup.skip');
     Route::delete('/delete', [DeleteAccountController::class, 'destroy'])->middleware('throttle:login')->name('account.delete.destroy');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
-require __DIR__ . '/admin.php';
+require __DIR__.'/admin.php';

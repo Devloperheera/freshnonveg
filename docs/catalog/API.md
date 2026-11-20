@@ -21,16 +21,34 @@ Active banners, newest first (`id` desc).
     {
       "id": 2,
       "name": "Weekend Offer",
-      "image": "http://127.0.0.1:8000/storage/banners/abc.jpg"
+      "image": "http://127.0.0.1:8000/storage/banners/abc.jpg",
+      "link_type": "products",
+      "product_ids": [7, 2, 5],
+      "products_count": 3
     },
     {
       "id": 1,
       "name": "Fresh Meat Home",
-      "image": "http://127.0.0.1:8000/storage/banners/hero.png"
+      "image": "http://127.0.0.1:8000/storage/banners/hero.png",
+      "link_type": "none",
+      "product_ids": [],
+      "products_count": 0
     }
   ]
 }
 ```
+
+### Banner tap
+
+Admin har banner par products chunta hai (ek banner → kai products). App me tap par:
+
+| `link_type` | Kya karein |
+|-------------|------------|
+| `products` | Product list screen → **`GET /products?banner={id}`** (admin wale order me aate hain), title = banner `name` |
+| `product` | Seedha product detail → `GET /products/{product_ids[0]}` |
+| `none` | Tap disable |
+
+Inactive products `product_ids` me nahi aate. Inactive banner ka `?banner=` empty list deta hai.
 
 ### cURL
 

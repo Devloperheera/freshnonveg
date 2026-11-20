@@ -1,33 +1,33 @@
 <?php
 
+use App\Http\Controllers\Admin\AdvantageItemController;
 use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\BannerController;
-use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CartController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ComplaintController;
-use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Admin\NotificationGroupController;
-use App\Http\Controllers\Admin\PushNotificationController;
-use App\Http\Controllers\Admin\OrderNotificationController;
-use App\Http\Controllers\Admin\WalletController;
-use App\Http\Controllers\Admin\WishlistController;
-use App\Http\Controllers\Admin\DeliveryZoneController;
-use App\Http\Controllers\Admin\ProductReviewController;
 use App\Http\Controllers\Admin\CouponController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DeliverySlotController;
+use App\Http\Controllers\Admin\DeliveryZoneController;
 use App\Http\Controllers\Admin\FaqController;
+use App\Http\Controllers\Admin\NotificationGroupController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\OrderNotificationController;
+use App\Http\Controllers\Admin\OrderStepController;
 use App\Http\Controllers\Admin\PageContentController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\AdvantageItemController;
-use App\Http\Controllers\Admin\DeliverySlotController;
-use App\Http\Controllers\Admin\OrderStepController;
+use App\Http\Controllers\Admin\ProductReviewController;
+use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\PushNotificationController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SiteStatController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WalletController;
+use App\Http\Controllers\Admin\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('FreshNonVegAdmin')
@@ -224,6 +224,7 @@ Route::prefix('FreshNonVegAdmin')
             Route::delete('/testimonials/{testimonial}', [TestimonialController::class, 'destroy'])->name('testimonials.destroy');
             Route::patch('/testimonials/{testimonial}/toggle-status', [TestimonialController::class, 'toggleStatus'])->name('testimonials.toggle-status');
             Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+            Route::put('/settings/delivery', [SettingsController::class, 'updateDelivery'])->name('settings.delivery.update');
             Route::get('/header-content', fn () => redirect()->route('admin.settings.index', [], 301))->name('header-content.index');
         });
     });

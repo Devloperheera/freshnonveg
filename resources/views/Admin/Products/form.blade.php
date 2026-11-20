@@ -65,14 +65,19 @@
                     @error('category_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Select Banner</label>
-                    <select name="banner_id" class="form-select select-search @error('banner_id') is-invalid @enderror">
-                        <option value="">— None —</option>
+                    @php
+                        $productBannerIds = array_map('intval', old('banner_ids', $product->exists ? $product->banners()->pluck('banners.id')->all() : []));
+                    @endphp
+                    <label class="form-label">Banners (kai chun sakte hain)</label>
+                    <select name="banner_ids[]" multiple class="form-select select-search @error('banner_ids') is-invalid @enderror @error('banner_ids.*') is-invalid @enderror"
+                            data-placeholder="— None —">
                         @foreach($banners as $id => $name)
-                            <option value="{{ $id }}" @selected(old('banner_id', $product->banner_id) == $id)>{{ $name }}</option>
+                            <option value="{{ $id }}" @selected(in_array((int) $id, $productBannerIds, true))>{{ $name }}</option>
                         @endforeach
                     </select>
-                    @error('banner_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    @error('banner_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    @error('banner_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">Banner click karne par ye product us banner ke products me dikhega.</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Tags — select ya naya likhein</label>

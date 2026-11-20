@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\User;
 use App\Models\WishlistItem;
 use App\Services\DeliveryZoneChecker;
+use Illuminate\Support\Collection;
 
 class CheckoutApi
 {
@@ -60,7 +61,7 @@ class CheckoutApi
      */
     public static function quote(array $quote): array
     {
-        /** @var \Illuminate\Support\Collection<int, CartItem> $items */
+        /** @var Collection<int, CartItem> $items */
         $items = $quote['items'];
         /** @var ?Coupon $coupon */
         $coupon = $quote['coupon'] ?? null;
@@ -76,6 +77,10 @@ class CheckoutApi
             'delivery_schedule_type' => $quote['delivery_schedule_type'],
             'delivery_fee' => (float) $quote['delivery_fee'],
             'instant_delivery_fee' => (float) $quote['instant_delivery_fee'],
+            'instant_fee_applied' => (float) ($quote['instant_fee_applied'] ?? 0),
+            'delivery_charge' => (float) ($quote['delivery_charge'] ?? 0),
+            'free_delivery_min_order' => (float) ($quote['free_delivery_min_order'] ?? 0),
+            'amount_for_free_delivery' => (float) ($quote['amount_for_free_delivery'] ?? 0),
             'discount' => (float) $quote['discount'],
             'coupon' => $coupon ? self::coupon($coupon, (float) $quote['discount']) : null,
             'wallet_balance' => (float) $quote['wallet_balance'],
@@ -85,10 +90,21 @@ class CheckoutApi
             'payable' => (float) $quote['payable'],
             'total' => (float) $quote['total'],
             'minimum_online_pay' => (float) $quote['minimum_online_pay'],
-            'time_slots' => collect($quote['time_slots'])->map(fn ($label, $key) => [
-                'value' => (string) $key,
-                'label' => (string) $label,
-            ])->values()->all(),
+            'today' => $quote['today'] ?? CheckoutDelivery::todayDate(),
+            'timezone' => CheckoutDelivery::TIMEZONE,
+            'time_slots' => collect($quote['time_slots'])->map(function ($label, $key) use ($quote) {
+                $detail = $quote['time_slot_details'][$key] ?? null;
+                $start = $detail['start'] ?? null;
+
+                return [
+                    'value' => (string) $key,
+                    'label' => (string) $label,
+                    'start_time' => $start,
+                    'end_time' => $detail['end'] ?? null,
+                    // false → aaj ki date par ye slot nikal chuka hai (sirf future date par dikhao)
+                    'available_today' => $start === null ? true : CheckoutDelivery::slotAvailableOn($start, $quote['today'] ?? CheckoutDelivery::todayDate()),
+                ];
+            })->values()->all(),
             'payment_method' => $quote['payment_method'],
             'payment_gateway' => $quote['payment_gateway'] ?? null,
             'payment_gateway_label' => $quote['payment_gateway_label'] ?? null,

@@ -14,6 +14,7 @@
         <form method="POST" action="{{ route('checkout.store') }}" class="checkout-page-layout" id="checkoutForm"
               data-subtotal="{{ $subtotal }}"
               data-instant-fee="{{ $instantDeliveryFee }}"
+              data-shipping="{{ $shipping }}"
               data-pincode-url="{{ route('checkout.pincode', ['pincode' => '__PINCODE__']) }}"
               data-address-suggest-url="{{ route('checkout.address-suggest') }}"
               data-coupon-url="{{ route('checkout.coupon') }}">
@@ -46,7 +47,8 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold" for="deliveryDate">Delivery date *</label>
                                 <input type="date" name="delivery_date" id="deliveryDate" class="form-control @error('delivery_date') is-invalid @enderror"
-                                       value="{{ old('delivery_date') }}">
+                                       value="{{ old('delivery_date') }}" min="{{ $todayIst }}"
+                                       data-today="{{ $todayIst }}" data-now-minutes="{{ $nowIstMinutes }}">
                                 @error('delivery_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6">
@@ -54,9 +56,12 @@
                                 <select name="delivery_time" id="deliveryTime" class="form-select @error('delivery_time') is-invalid @enderror">
                                     <option value="">Slot choose karein</option>
                                     @foreach($timeSlots as $value => $label)
-                                        <option value="{{ $value }}" @selected(old('delivery_time') === $value)>{{ $label }}</option>
+                                        <option value="{{ $value }}" data-start="{{ $timeSlotDetails[$value]['start'] ?? '' }}" @selected(old('delivery_time') === $value)>{{ $label }}</option>
                                     @endforeach
                                 </select>
+                                <p class="small text-danger mb-0 mt-1" id="noSlotsToday" hidden>
+                                    Aaj ke saare slots nikal chuke hain. Kal ya aage ki date chunein, ya Instant delivery lein.
+                                </p>
                                 @if($timeSlots === [])
                                     <p class="small text-danger mb-0 mt-1">Abhi koi delivery slot active nahi. Admin se slot on karwayein.</p>
                                 @endif
@@ -69,6 +74,42 @@
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body p-4">
                         <h2 class="h5 fw-bold mb-3">Delivery address</h2>
+                        @php
+                            $hasOldAddress = old('delivery_address') !== null;
+                            $defaultAddress = $savedAddresses->firstWhere('is_default', true) ?? $savedAddresses->first();
+                            $selectedAddressId = old('address_id', $hasOldAddress ? null : $defaultAddress?->id);
+                        @endphp
+                        <input type="hidden" name="address_id" id="checkoutAddressId" value="{{ $selectedAddressId }}">
+                        @if($savedAddresses->isNotEmpty())
+                            <div class="checkout-addr-list mb-3" id="checkoutAddrList">
+                                @foreach($savedAddresses as $addr)
+                                    <label class="checkout-addr-card {{ (int) $selectedAddressId === $addr->id ? 'active' : '' }}">
+                                        <input type="radio" name="address_choice" value="{{ $addr->id }}"
+                                               @checked((int) $selectedAddressId === $addr->id)
+                                               data-phone="{{ $addr->phone }}" data-pincode="{{ $addr->pincode }}"
+                                               data-state="{{ $addr->state }}" data-city="{{ $addr->city }}"
+                                               data-post-office="{{ $addr->post_office }}" data-address="{{ $addr->address }}">
+                                        <span class="checkout-addr-card__head">
+                                            <span class="checkout-addr-card__label">
+                                                <i class="bi {{ $addr->label === 'Work' ? 'bi-briefcase' : ($addr->label === 'Home' ? 'bi-house-door' : 'bi-geo-alt') }}"></i>
+                                                {{ $addr->label }}
+                                            </span>
+                                            @if($addr->is_default)<span class="checkout-addr-card__badge">Default</span>@endif
+                                        </span>
+                                        <span class="checkout-addr-card__line">{{ $addr->fullLine() }}</span>
+                                        <span class="checkout-addr-card__phone"><i class="bi bi-telephone"></i> {{ $addr->phone }}</span>
+                                    </label>
+                                @endforeach
+                                <label class="checkout-addr-card checkout-addr-card--new {{ $selectedAddressId ? '' : 'active' }}">
+                                    <input type="radio" name="address_choice" value="new" @checked(! $selectedAddressId)>
+                                    <span class="checkout-addr-card__label"><i class="bi bi-plus-circle"></i> Naya address</span>
+                                    <span class="checkout-addr-card__line">Kisi aur jagah delivery karwani hai</span>
+                                </label>
+                            </div>
+                            <div class="small mb-3">
+                                <a href="{{ route('dashboard.addresses') }}" class="text-decoration-none"><i class="bi bi-pencil-square me-1"></i>Saved addresses manage karein</a>
+                            </div>
+                        @endif
                         <div id="deliveryComingSoon" class="checkout-coming-soon" role="status" @unless($errors->has('pincode')) hidden @endunless>
                             <div class="checkout-coming-soon__icon" aria-hidden="true"><i class="bi bi-geo-alt-fill"></i></div>
                             <div>
@@ -76,6 +117,7 @@
                                 <p class="checkout-coming-soon__en mb-0">{{ \App\Services\DeliveryZoneChecker::COMING_SOON_EN }}</p>
                             </div>
                         </div>
+                        <div id="checkoutAddressFields" @if($selectedAddressId) hidden @endif>
                         <div class="mb-3">
                             <label class="form-label fw-semibold" for="checkoutPhone">Mobile / Phone *</label>
                             <input type="text" name="phone" id="checkoutPhone" class="form-control @error('phone') is-invalid @enderror"
@@ -111,6 +153,22 @@
                                    placeholder="Type karein — free address suggestions aayenge">
                             <div id="addressSuggestDropdown" class="checkout-address-dropdown" hidden></div>
                             @error('delivery_address')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <input type="hidden" name="post_office" id="checkoutPostOffice" value="{{ old('post_office') }}">
+                        <div class="checkout-save-addr mb-3" id="checkoutSaveAddress">
+                            <label class="d-flex align-items-center gap-2 mb-2">
+                                <input type="checkbox" name="save_address" value="1" @checked(old('save_address', '1'))>
+                                <span class="fw-semibold small">Is address ko save karein (agli baar ek click me)</span>
+                            </label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                @foreach(\App\Models\UserAddress::LABELS as $lbl)
+                                    <label class="checkout-addr-tag">
+                                        <input type="radio" name="address_label" value="{{ $lbl }}" @checked(old('address_label', 'Home') === $lbl)>
+                                        <span>{{ $lbl }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold" for="orderNotes">Order notes (optional)</label>
@@ -169,13 +227,22 @@
                             <span>Subtotal</span>
                             <span>₹{{ number_format($subtotal, 2) }}</span>
                         </div>
+                        <div class="cart-summary-line">
+                            <span>Delivery charge</span>
+                            @if($shipping > 0)
+                                <span>₹{{ number_format($shipping, 2) }}</span>
+                            @else
+                                <span class="text-success fw-semibold">Free</span>
+                            @endif
+                        </div>
+                        @if($shipping > 0 && $amountForFreeDelivery > 0)
+                            <div class="small text-muted mb-2">
+                                ₹{{ number_format($amountForFreeDelivery, 0) }} ka aur saaman add karein — ₹{{ number_format($freeDeliveryMinOrder, 0) }}+ order par delivery free.
+                            </div>
+                        @endif
                         <div class="cart-summary-line" id="checkoutDeliveryFeeRow" hidden>
                             <span>Instant delivery</span>
                             <span id="checkoutDeliveryFee">₹0.00</span>
-                        </div>
-                        <div class="cart-summary-line">
-                            <span>Shipping</span>
-                            <span class="text-success fw-semibold">Free</span>
                         </div>
                         <div class="cart-summary-line">
                             <span>Tax</span>

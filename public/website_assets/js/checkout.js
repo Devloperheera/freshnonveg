@@ -8,6 +8,7 @@
 
     var subtotal = parseFloat(form.dataset.subtotal || '0');
     var instantFee = parseFloat(form.dataset.instantFee || '100');
+    var shippingFee = parseFloat(form.dataset.shipping || '0');
     var pincodeUrlTemplate = form.dataset.pincodeUrl || '';
     var addressSuggestUrl = form.dataset.addressSuggestUrl || '';
     var csrf = document.querySelector('meta[name="csrf-token"]');
@@ -91,7 +92,7 @@
         var fee = currentDeliveryFee();
         var discount = currentDiscount();
         var tax = 0;
-        var total = Math.max(0, subtotal - discount + tax + fee);
+        var total = Math.max(0, subtotal - discount + tax + shippingFee + fee);
         var walletUsed = 0;
         if (walletCheckbox && walletCheckbox.checked) {
             var balance = parseFloat(walletCheckbox.dataset.walletBalance || '0');
@@ -320,6 +321,77 @@
         }
     }
 
+    /* ---- Saved address / naya address ---- */
+    (function () {
+        var list = document.getElementById('checkoutAddrList');
+        var fields = document.getElementById('checkoutAddressFields');
+        var addressIdInput = document.getElementById('checkoutAddressId');
+        var phoneInput = document.getElementById('checkoutPhone');
+        var postOfficeInput = document.getElementById('checkoutPostOffice');
+        if (!list || !fields) {
+            return;
+        }
+        var radios = list.querySelectorAll('input[name="address_choice"]');
+
+        function setVal(el, v) {
+            if (el) {
+                el.value = v || '';
+            }
+        }
+
+        function choose(radio, initial) {
+            Array.prototype.forEach.call(radios, function (r) {
+                r.closest('.checkout-addr-card').classList.toggle('active', r === radio);
+            });
+
+            if (radio.value === 'new') {
+                setVal(addressIdInput, '');
+                fields.hidden = false;
+                if (!initial) {
+                    setVal(pincodeInput, '');
+                    setVal(stateInput, '');
+                    setVal(cityInput, '');
+                    setVal(addressInput, '');
+                    setVal(postOfficeInput, '');
+                    setComingSoon(false);
+                    setPincodeStatus('', 'muted');
+                    if (pincodeInput) {
+                        pincodeInput.focus();
+                    }
+                }
+                return;
+            }
+
+            var d = radio.dataset;
+            var pinChanged = !pincodeInput || pincodeInput.value !== d.pincode;
+            setVal(addressIdInput, radio.value);
+            setVal(phoneInput, d.phone);
+            setVal(pincodeInput, d.pincode);
+            setVal(stateInput, d.state);
+            setVal(cityInput, d.city);
+            setVal(addressInput, d.address);
+            setVal(postOfficeInput, d.postOffice);
+            fields.hidden = true;
+            // Delivery zone dobara check (admin ne zone badla ho to)
+            if (pinChanged || !initial) {
+                lookupPincode(d.pincode);
+            }
+        }
+
+        Array.prototype.forEach.call(radios, function (r) {
+            r.addEventListener('change', function () {
+                if (r.checked) {
+                    choose(r, false);
+                }
+            });
+        });
+
+        var checked = list.querySelector('input[name="address_choice"]:checked');
+        if (checked) {
+            choose(checked, true);
+        }
+    })();
+
     form.addEventListener('submit', function (e) {
         if (!outOfZone) {
             return;
@@ -381,9 +453,63 @@
         }
     }
 
+    /* ---- Aaj ki date par beete hue slots chhupao (India time, server se) ---- */
     if (deliveryDate) {
-        var today = new Date().toISOString().split('T')[0];
-        deliveryDate.min = today;
+        var todayIst = deliveryDate.dataset.today || '';
+        var nowMinutesAtLoad = parseInt(deliveryDate.dataset.nowMinutes || '0', 10);
+        var loadedAt = Date.now();
+        var noSlotsMsg = document.getElementById('noSlotsToday');
+
+        if (todayIst) {
+            deliveryDate.min = todayIst;
+        }
+
+        var currentIstMinutes = function () {
+            return nowMinutesAtLoad + Math.floor((Date.now() - loadedAt) / 60000);
+        };
+
+        // Safari <option hidden> ignore karta hai — isliye master list rakh ke select dobara banate hain
+        var allSlotOptions = deliveryTime
+            ? Array.prototype.filter.call(deliveryTime.options, function (opt) { return opt.value !== ''; })
+            : [];
+
+        var refreshSlots = function () {
+            if (!deliveryTime) {
+                return;
+            }
+            var isToday = deliveryDate.value !== '' && deliveryDate.value === todayIst;
+            var nowMin = currentIstMinutes();
+            var selected = deliveryTime.value;
+            var keep = allSlotOptions.filter(function (opt) {
+                if (!isToday) {
+                    return true;
+                }
+                var parts = (opt.getAttribute('data-start') || '').split(':');
+                var startMin = parts.length === 2 ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) : NaN;
+                return isNaN(startMin) || startMin > nowMin;
+            });
+
+            while (deliveryTime.options.length > 1) {
+                deliveryTime.remove(1);
+            }
+            keep.forEach(function (opt) {
+                deliveryTime.appendChild(opt);
+            });
+            var stillThere = keep.some(function (opt) { return opt.value === selected; });
+            deliveryTime.value = stillThere ? selected : '';
+
+            if (noSlotsMsg) {
+                noSlotsMsg.hidden = !(isToday && keep.length === 0 && allSlotOptions.length > 0);
+            }
+        };
+
+        deliveryDate.addEventListener('change', refreshSlots);
+        deliveryDate.addEventListener('input', refreshSlots);
+        if (deliveryTime) {
+            // Page der tak khula rahe to dropdown kholte waqt dobara check
+            deliveryTime.addEventListener('focus', refreshSlots);
+        }
+        refreshSlots();
     }
 
     var addressDropdown = document.getElementById('addressSuggestDropdown');

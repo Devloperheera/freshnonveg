@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Website;
 
 use App\Http\Controllers\Controller;
+use App\Models\Banner;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Tag;
@@ -41,11 +42,16 @@ class ShopController extends Controller
             ? Tag::query()->where('status', 1)->find($request->integer('tag'))
             : null;
 
+        $activeBanner = $request->filled('banner')
+            ? Banner::query()->where('status', 1)->find($request->integer('banner'))
+            : null;
+
         return view('Website.shop', [
             'products' => $products,
             'showViewAll' => false,
             'activeCategory' => $activeCategory,
             'activeTag' => $activeTag,
+            'activeBanner' => $activeBanner,
         ]);
     }
 
@@ -68,6 +74,16 @@ class ShopController extends Controller
 
         if ($request->filled('product')) {
             $query->where('id', $request->integer('product'));
+        }
+
+        // Hero banner click → sirf us banner ke products, admin wale order me
+        if ($request->filled('banner')) {
+            $bannerId = $request->integer('banner');
+            $query->whereHas('banners', fn (Builder $b) => $b->where('banners.id', $bannerId)->where('banners.status', 1))
+                ->orderByRaw(
+                    '(select bp.sort_order from banner_product bp where bp.product_id = products.id and bp.banner_id = ? limit 1)',
+                    [$bannerId]
+                );
         }
 
         if ($request->filled('q')) {

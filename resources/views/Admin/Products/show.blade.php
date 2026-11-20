@@ -44,7 +44,7 @@
             @foreach($product->tags as $tag)<span class="badge bg-primary">{{ $tag->name }}</span>@endforeach
         </div>
         <div class="small opacity-90">
-            {{ $product->category?->name ?? 'No category' }} · Banner: {{ $product->banner?->name ?? '—' }}
+            {{ $product->category?->name ?? 'No category' }} · Banners: {{ $product->banners->pluck('name')->join(', ') ?: '—' }}
         </div>
     </div>
 

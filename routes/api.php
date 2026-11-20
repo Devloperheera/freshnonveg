@@ -2,24 +2,25 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BannerController;
+use App\Http\Controllers\Api\Cart\CartController as ApiCartController;
+use App\Http\Controllers\Api\Cart\WishlistController as ApiWishlistController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\Checkout\CheckoutController as ApiCheckoutController;
+use App\Http\Controllers\Api\Checkout\CouponController as ApiCouponController;
+use App\Http\Controllers\Api\Checkout\InvoiceController as ApiInvoiceController;
+use App\Http\Controllers\Api\Checkout\LocationController as ApiLocationController;
+use App\Http\Controllers\Api\Checkout\PaymentController as ApiPaymentController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\HomeContentController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\UserDashboard\AddressController as UserDashboardAddressController;
 use App\Http\Controllers\Api\UserDashboard\ComplaintController as UserDashboardComplaintController;
 use App\Http\Controllers\Api\UserDashboard\DashboardController as UserDashboardController;
 use App\Http\Controllers\Api\UserDashboard\OrderController as UserDashboardOrderController;
 use App\Http\Controllers\Api\UserDashboard\ProfileController as UserDashboardProfileController;
 use App\Http\Controllers\Api\UserDashboard\RatingController as UserDashboardRatingController;
 use App\Http\Controllers\Api\UserDashboard\WalletController as UserDashboardWalletController;
-use App\Http\Controllers\Api\Cart\CartController as ApiCartController;
-use App\Http\Controllers\Api\Cart\WishlistController as ApiWishlistController;
-use App\Http\Controllers\Api\Checkout\CheckoutController as ApiCheckoutController;
-use App\Http\Controllers\Api\Checkout\CouponController as ApiCouponController;
-use App\Http\Controllers\Api\Checkout\InvoiceController as ApiInvoiceController;
-use App\Http\Controllers\Api\Checkout\LocationController as ApiLocationController;
-use App\Http\Controllers\Api\Checkout\PaymentController as ApiPaymentController;
 use App\Support\SitePage;
 use Illuminate\Support\Facades\Route;
 
@@ -94,6 +95,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/orders', [UserDashboardOrderController::class, 'index']);
         Route::get('/orders/{order}', [UserDashboardOrderController::class, 'show']);
         Route::post('/orders/{order}/cancel', [UserDashboardOrderController::class, 'cancel']);
+        Route::post('/orders/{order}/reorder', [UserDashboardOrderController::class, 'reorder']);
+        Route::get('/addresses', [UserDashboardAddressController::class, 'index']);
+        Route::post('/addresses', [UserDashboardAddressController::class, 'store']);
+        Route::put('/addresses/{address}', [UserDashboardAddressController::class, 'update']);
+        Route::delete('/addresses/{address}', [UserDashboardAddressController::class, 'destroy']);
+        Route::patch('/addresses/{address}/default', [UserDashboardAddressController::class, 'makeDefault']);
         Route::get('/orders/{order}/bill', [UserDashboardOrderController::class, 'bill']);
 
         Route::get('/wallet', [UserDashboardWalletController::class, 'index']);
